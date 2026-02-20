@@ -205,10 +205,10 @@
             {
               "id": "cond-is-dup",
               "leftValue": "={{ $json._is_duplicate }}",
-              "rightValue": true,
+              "rightValue": "",
               "operator": {
-                "type": "boolean",
-                "operation": "true"
+                "type": "string",
+                "operation": "empty"
               }
             }
           ],
@@ -1336,6 +1336,17 @@
         [
           {
             "node": "Send Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip — Already Processed": {
+      "main": [
+        [
+          {
+            "node": "Continue Loop",
             "type": "main",
             "index": 0
           }
