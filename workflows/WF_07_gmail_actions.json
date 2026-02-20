@@ -1,0 +1,283 @@
+{
+  "meta": {
+    "instanceId": "poc-gmail-automation"
+  },
+  "name": "WF_07 - Gmail Actions Executor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-wf07-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF_07 — Exécuteur d'actions Gmail\n// Ce workflow peut être appelé depuis WF_06 ou manuellement\n//\n// Input attendu:\n// {\n//   action: 'SEND_DRAFT|APPLY_LABELS|REMOVE_LABELS|ARCHIVE|MARK_READ|MARK_SPAM|MODIFY',\n//   gmail_message_id: string,\n//   thread_id: string (optionnel),\n//   draft_id: string (pour SEND_DRAFT),\n//   labels_to_add: string[] (pour APPLY_LABELS),\n//   labels_to_remove: string[] (pour REMOVE_LABELS),\n//   demo_mode: boolean\n// }\n// ============================================================\n\nconst input = $json;\n\n// Defaults\nconst action = input.action || 'NOOP';\nconst demoMode = input.demo_mode !== undefined ? input.demo_mode : ($env['DEMO_MODE'] === 'true');\nconst gmailMsgId = input.gmail_message_id;\nconst threadId = input.thread_id;\nconst draftId = input.draft_id;\nconst labelsToAdd = input.labels_to_add || [];\nconst labelsToRemove = input.labels_to_remove || [];\n\nconst VALID_ACTIONS = ['SEND_DRAFT', 'APPLY_LABELS', 'REMOVE_LABELS', 'ARCHIVE', 'MARK_READ', 'MARK_SPAM', 'MODIFY_LABELS', 'NOOP'];\n\nif (!VALID_ACTIONS.includes(action)) {\n  throw new Error(`Action invalide: ${action}. Actions valides: ${VALID_ACTIONS.join(', ')}`);\n}\n\nif (!gmailMsgId && action !== 'NOOP') {\n  throw new Error('gmail_message_id requis');\n}\n\nif (action === 'SEND_DRAFT' && !draftId) {\n  throw new Error('draft_id requis pour SEND_DRAFT');\n}\n\nconsole.log(`[WF_07] Action: ${action} | Message: ${gmailMsgId} | Demo: ${demoMode}`);\n\nreturn [{\n  json: {\n    ...input,\n    action: action,\n    gmail_message_id: gmailMsgId,\n    thread_id: threadId,\n    draft_id: draftId,\n    labels_to_add: labelsToAdd,\n    labels_to_remove: labelsToRemove,\n    demo_mode: demoMode,\n    validated: true\n  }\n}];"
+      },
+      "id": "node-wf07-validate",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
+          "conditions": [{"id": "c1", "leftValue": "={{ $json.demo_mode }}", "rightValue": false, "operator": {"type": "boolean", "operation": "false"}}],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-wf07-demo-check",
+      "name": "IF Production Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [DEMO MODE] — Simuler toutes les actions Gmail sans les exécuter\nconst data = $json;\nconst action = data.action;\n\nconst simulatedResults = {\n  SEND_DRAFT:     { ok: true, simulated: true, detail: `Draft ${data.draft_id} envoyé (simulé)` },\n  APPLY_LABELS:   { ok: true, simulated: true, detail: `Labels ajoutés (simulé): ${(data.labels_to_add || []).join(', ')}` },\n  REMOVE_LABELS:  { ok: true, simulated: true, detail: `Labels retirés (simulé): ${(data.labels_to_remove || []).join(', ')}` },\n  ARCHIVE:        { ok: true, simulated: true, detail: 'Email archivé (simulé)' },\n  MARK_READ:      { ok: true, simulated: true, detail: 'Marqué lu (simulé)' },\n  MARK_SPAM:      { ok: true, simulated: true, detail: 'Marqué spam (simulé)' },\n  MODIFY_LABELS:  { ok: true, simulated: true, detail: 'Labels modifiés (simulé)' },\n  NOOP:           { ok: true, simulated: true, detail: 'Aucune action (NOOP)' }\n};\n\nconst result = simulatedResults[action] || { ok: true, simulated: true, detail: `Action ${action} simulée` };\n\nconsole.log(`[WF_07 DEMO] ${action} on ${data.gmail_message_id}: ${result.detail}`);\n\nreturn [{\n  json: {\n    ...data,\n    result: result,\n    executed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-wf07-demo-exec",
+      "name": "[DEMO] Simulate Gmail Actions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 460]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "rr1", "leftValue": "={{ $json.action }}", "rightValue": "SEND_DRAFT", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SEND_DRAFT"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "rr2", "leftValue": "={{ $json.action }}", "rightValue": "MARK_SPAM", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MARK_SPAM"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "rr3", "leftValue": "={{ $json.action }}", "rightValue": "ARCHIVE", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ARCHIVE"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{"id": "rr4", "leftValue": "={{ $json.action }}", "rightValue": "MARK_READ", "operator": {"type": "string", "operation": "equals"}}],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MARK_READ"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "node-wf07-action-switch",
+      "name": "Action Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [960, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts/={{ $json.draft_id }}/send",
+        "authentication": "oAuth2",
+        "options": {"timeout": 15000}
+      },
+      "id": "node-wf07-send-draft",
+      "name": "Gmail API — Send Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 140],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Gmail POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "addLabels",
+        "messageId": "={{ $json.gmail_message_id }}",
+        "labelIds": ["SPAM"]
+      },
+      "id": "node-wf07-mark-spam",
+      "name": "Gmail — Mark Spam",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1200, 260],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "removeLabels",
+        "messageId": "={{ $json.gmail_message_id }}",
+        "labelIds": ["INBOX"]
+      },
+      "id": "node-wf07-archive",
+      "name": "Gmail — Archive (Remove INBOX)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1200, 380],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "removeLabels",
+        "messageId": "={{ $json.gmail_message_id }}",
+        "labelIds": ["UNREAD"]
+      },
+      "id": "node-wf07-mark-read",
+      "name": "Gmail — Mark Read",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1200, 500],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "addLabels",
+        "messageId": "={{ $json.gmail_message_id }}",
+        "labelIds": "={{ $json.labels_to_add }}"
+      },
+      "id": "node-wf07-apply-labels",
+      "name": "Gmail — Apply Custom Labels",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1200, 620],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "node-wf07-merge-results",
+      "name": "Merge Action Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1440, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agréger les résultats et préparer le log final\nconst data = $json;\nconst action = data.action;\n\nconst isError = data.error !== undefined;\nconst result = {\n  ok: !isError,\n  simulated: data.result?.simulated || false,\n  action: action,\n  gmail_message_id: data.gmail_message_id,\n  executed_at: new Date().toISOString(),\n  detail: data.result?.detail || (isError ? data.error : `${action} exécuté`),\n  error: isError ? data.error : null\n};\n\nconsole.log(`[WF_07] Résultat: ${JSON.stringify(result)}`);\n\nreturn [{\n  json: {\n    ...data,\n    execution_result: result,\n    success: result.ok\n  }\n}];"
+      },
+      "id": "node-wf07-collect-result",
+      "name": "Collect & Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 380]
+    },
+    {
+      "parameters": {
+        "content": "## WF_07 — Gmail Actions Executor\n\n**Actions disponibles:**\n- `SEND_DRAFT` — Envoyer un draft via Gmail API\n- `APPLY_LABELS` — Appliquer des labels\n- `REMOVE_LABELS` — Retirer des labels\n- `ARCHIVE` — Retirer le label INBOX\n- `MARK_READ` — Retirer le label UNREAD\n- `MARK_SPAM` — Ajouter label SPAM\n- `MODIFY_LABELS` — Combo add + remove\n- `NOOP` — Aucune action (test)\n\n**Mode DEMO:**\nSi demo_mode=true, toutes les actions sont\nsimulées (logged) sans appel Gmail API réel.\n\n**Credentials requis:**\n- Gmail POC (OAuth2)\n\n**Note:** Ce workflow peut être appelé\ndepuis WF_06 ou manuellement pour tests.",
+        "height": 280,
+        "width": 300,
+        "color": 6
+      },
+      "id": "node-wf07-sticky",
+      "name": "Documentation WF_07",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 500]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Validate Input", "type": "main", "index": 0}]]
+    },
+    "Validate Input": {
+      "main": [[{"node": "IF Production Mode", "type": "main", "index": 0}]]
+    },
+    "IF Production Mode": {
+      "main": [
+        [{"node": "Action Switch", "type": "main", "index": 0}],
+        [{"node": "[DEMO] Simulate Gmail Actions", "type": "main", "index": 0}]
+      ]
+    },
+    "Action Switch": {
+      "main": [
+        [{"node": "Gmail API — Send Draft", "type": "main", "index": 0}],
+        [{"node": "Gmail — Mark Spam", "type": "main", "index": 0}],
+        [{"node": "Gmail — Archive (Remove INBOX)", "type": "main", "index": 0}],
+        [{"node": "Gmail — Mark Read", "type": "main", "index": 0}],
+        [{"node": "Gmail — Apply Custom Labels", "type": "main", "index": 0}]
+      ]
+    },
+    "Gmail API — Send Draft": {
+      "main": [[{"node": "Merge Action Results", "type": "main", "index": 0}]]
+    },
+    "Gmail — Mark Spam": {
+      "main": [[{"node": "Merge Action Results", "type": "main", "index": 1}]]
+    },
+    "Gmail — Archive (Remove INBOX)": {
+      "main": [[{"node": "Merge Action Results", "type": "main", "index": 2}]]
+    },
+    "Gmail — Mark Read": {
+      "main": [[{"node": "Merge Action Results", "type": "main", "index": 3}]]
+    },
+    "Gmail — Apply Custom Labels": {
+      "main": [[{"node": "Merge Action Results", "type": "main", "index": 4}]]
+    },
+    "[DEMO] Simulate Gmail Actions": {
+      "main": [[{"node": "Collect & Log Result", "type": "main", "index": 0}]]
+    },
+    "Merge Action Results": {
+      "main": [[{"node": "Collect & Log Result", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {}
+}

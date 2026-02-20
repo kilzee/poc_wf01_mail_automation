@@ -1,0 +1,96 @@
+{
+  "_comment": "Règles de scoring anti-phishing — modifiables sans redéployer n8n",
+  "_version": "1.0",
+
+  "thresholds": {
+    "low":    { "max": 30, "label": "LOW",  "block_send": false, "requires_review": false },
+    "medium": { "max": 69, "label": "MED",  "block_send": false, "requires_review": true  },
+    "high":   { "max": 100,"label": "HIGH", "block_send": true,  "requires_review": true  }
+  },
+
+  "signals": {
+    "display_name_mismatch": {
+      "weight": 20,
+      "description": "Le nom affiché ne correspond pas au domaine de l'adresse email"
+    },
+    "reply_to_different_domain": {
+      "weight": 25,
+      "description": "Le reply-to pointe vers un domaine différent de l'expéditeur"
+    },
+    "lookalike_domain": {
+      "weight": 35,
+      "description": "Domaine visuellement similaire à un domaine connu (typosquatting)"
+    },
+    "urgency_keywords": {
+      "weight": 15,
+      "description": "Mots d'urgence: urgent, immédiat, imminent, dernière chance, action requise",
+      "keywords_fr": ["urgent", "immédiat", "imminent", "dernière chance", "action requise", "délai expiré", "compte bloqué", "vérification requise", "confirmer maintenant"],
+      "keywords_en": ["urgent", "immediate", "final notice", "last chance", "account suspended", "verify now", "action required", "expires today", "limited time"]
+    },
+    "secret_request": {
+      "weight": 40,
+      "description": "Demande de mot de passe, code OTP, informations bancaires ou carte",
+      "keywords_fr": ["mot de passe", "code otp", "code de vérification", "numéro de carte", "rib", "coordonnées bancaires", "code secret", "pin", "code d'accès"],
+      "keywords_en": ["password", "otp", "verification code", "credit card", "bank account", "ssn", "social security", "secret code", "pin number"]
+    },
+    "shortened_url": {
+      "weight": 20,
+      "description": "URL raccourcie (bit.ly, tinyurl, t.co, etc.)",
+      "domains": ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "short.io", "rebrand.ly", "is.gd", "tiny.cc", "shorturl.at"]
+    },
+    "punycode_unicode": {
+      "weight": 30,
+      "description": "Domaine utilisant du punycode (xn--) ou caractères unicode homoglyphes"
+    },
+    "ip_literal_url": {
+      "weight": 35,
+      "description": "URL pointant directement vers une adresse IP (ex: http://192.168.1.1/login)"
+    },
+    "suspicious_tld": {
+      "weight": 20,
+      "description": "TLD inhabituel souvent associé au phishing",
+      "tlds": [".xyz", ".top", ".club", ".online", ".site", ".store", ".icu", ".live", ".click", ".monster", ".vip", ".cam", ".loan", ".work", ".gq", ".ml", ".cf", ".tk", ".ga"]
+    },
+    "mismatched_href_text": {
+      "weight": 25,
+      "description": "Le texte du lien affiché est différent de l'URL réelle href"
+    },
+    "suspicious_attachment": {
+      "weight_per_type": {
+        "executable": 50,
+        "macro_enabled": 40,
+        "archive_unknown": 25,
+        "script": 45,
+        "safe": 0
+      },
+      "forbidden_extensions": [".exe", ".msi", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".jar", ".scr", ".pif", ".com", ".hta", ".wsf"],
+      "macro_extensions": [".xlsm", ".docm", ".pptm", ".xlsb", ".xltm", ".dotm", ".potm"],
+      "archive_extensions": [".zip", ".rar", ".7z", ".gz", ".tar", ".iso", ".img"],
+      "suspicious_name_patterns": ["invoice", "facture", "payment", "paiement", "urgent", "scan", "doc", "attachment", "remittance"]
+    },
+    "free_email_impersonation": {
+      "weight": 20,
+      "description": "Expéditeur utilise un domaine gratuit pour prétendre représenter une organisation",
+      "free_domains": ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com", "aol.com", "protonmail.com", "icloud.com"]
+    },
+    "no_text_all_images": {
+      "weight": 15,
+      "description": "Email composé uniquement d'images sans texte (contournement filtres)"
+    }
+  },
+
+  "known_trusted_domains": [
+    "google.com", "microsoft.com", "apple.com", "amazon.com",
+    "paypal.com", "stripe.com", "github.com", "gitlab.com"
+  ],
+
+  "lookalike_targets": [
+    { "legitimate": "paypal.com",     "patterns": ["paypa1", "pay-pal", "paypai", "paypa1"] },
+    { "legitimate": "amazon.com",     "patterns": ["arnazon", "amazon-secure", "amaz0n"] },
+    { "legitimate": "microsoft.com",  "patterns": ["micros0ft", "microsoft-login", "microsoftonline"] },
+    { "legitimate": "google.com",     "patterns": ["g00gle", "goggle", "google-secure"] },
+    { "legitimate": "apple.com",      "patterns": ["apple-id", "apple-support", "app1e"] },
+    { "legitimate": "impots.gouv.fr", "patterns": ["impots-gouv", "imp0ts", "impots.fr"] },
+    { "legitimate": "ameli.fr",       "patterns": ["ameli-fr", "ameli-sante", "amelie.fr"] }
+  ]
+}

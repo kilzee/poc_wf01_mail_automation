@@ -1,0 +1,67 @@
+# =============================================================================
+# .gitignore — POC Gmail Automation n8n
+# =============================================================================
+
+# --- Secrets & Credentials (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+credentials.json
+token.json
+service_account*.json
+google_credentials*.json
+*_credentials.json
+*_token*.json
+
+# --- n8n local data ---
+.n8n/
+n8n_data/
+postgres_data/
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- Logs ---
+*.log
+logs/
+*.audit.json
+
+# --- Exports temporaires ---
+exports/tmp/
+*.export.tmp.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE ---
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# --- Node (si scripts JS locaux) ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# --- Python (si scripts locaux) ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# --- Dumps DB ---
+*.sql.gz
+*.dump
+pg_backup/
+
+# --- Fichiers temporaires ---
+*.tmp
+*.bak
+*.orig

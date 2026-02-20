@@ -1,0 +1,64 @@
+{
+  "_comment": "Liste VIP — emails/domaines à traiter en P1 automatiquement. Personnaliser avant démo.",
+  "_version": "1.0",
+
+  "vip_emails": [
+    "pdg@entreprise.com",
+    "cto@entreprise.com",
+    "client.important@grandcompte.fr",
+    "facturation@fournisseur-critique.com"
+  ],
+
+  "vip_domains": [
+    "grandcompte.fr",
+    "client-strategique.com",
+    "investisseur.io"
+  ],
+
+  "vip_keywords_subject": [
+    "incident critique",
+    "production down",
+    "urgent client",
+    "contrat",
+    "paiement",
+    "facture impayée",
+    "litige",
+    "mise en demeure",
+    "SLA breach",
+    "data breach",
+    "fuite de données"
+  ],
+
+  "auto_p1_rules": [
+    {
+      "rule": "vip_sender",
+      "description": "Expéditeur dans vip_emails ou vip_domains → P1",
+      "priority": "P1",
+      "category": "CLIENT"
+    },
+    {
+      "rule": "keyword_subject",
+      "description": "Sujet contient un mot-clé critique → P1",
+      "priority": "P1",
+      "keywords": ["incident critique", "production down", "litige", "mise en demeure", "data breach"]
+    }
+  ],
+
+  "internal_domains": [
+    "monentreprise.com",
+    "mafiliale.fr"
+  ],
+
+  "no_reply_addresses": [
+    "noreply@",
+    "no-reply@",
+    "donotreply@",
+    "notifications@",
+    "mailer@",
+    "newsletter@",
+    "news@",
+    "info@",
+    "contact@",
+    "support@"
+  ]
+}

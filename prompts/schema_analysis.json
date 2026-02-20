@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "poc-gmail-triage-v1",
+  "title": "EmailTriageAnalysis",
+  "description": "Schéma de validation pour la sortie LLM du module triage",
+  "type": "object",
+  "required": ["summary", "priority", "category", "needs_reply", "recommended_action", "risk_signals", "questions_to_confirm", "confidence"],
+  "additionalProperties": false,
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Résumé factuel de l'email en 1-2 phrases"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P1", "P2", "P3"],
+      "description": "Niveau de priorité"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["CLIENT", "BILLING", "INCIDENT", "ADMIN", "HR", "SPAM", "OTHER"],
+      "description": "Catégorie fonctionnelle"
+    },
+    "needs_reply": {
+      "type": "boolean",
+      "description": "Cet email nécessite-t-il une réponse ?"
+    },
+    "recommended_action": {
+      "type": "string",
+      "enum": ["DRAFT_REPLY", "ARCHIVE", "FOLLOW_UP", "ESCALATE", "IGNORE"],
+      "description": "Action recommandée"
+    },
+    "risk_signals": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Signaux de risque identifiés par le LLM"
+    },
+    "draft_reply": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["subject", "body"],
+          "additionalProperties": false,
+          "properties": {
+            "subject": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "body": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 5000
+            }
+          }
+        }
+      ],
+      "description": "Brouillon de réponse (null si pas de réponse nécessaire)"
+    },
+    "questions_to_confirm": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Questions à valider avant d'envoyer la réponse"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Score de confiance de l'analyse (0.0-1.0)"
+    }
+  },
+
+  "_fallback_defaults": {
+    "description": "Valeurs utilisées si le parsing JSON échoue (fallback règles déterministes)",
+    "priority": "P2",
+    "category": "OTHER",
+    "needs_reply": false,
+    "recommended_action": "ESCALATE",
+    "risk_signals": ["LLM_PARSING_FAILURE"],
+    "draft_reply": null,
+    "questions_to_confirm": ["Vérification manuelle requise — parsing LLM échoué"],
+    "confidence": 0.0,
+    "summary": "Analyse automatique échouée — traitement manuel requis"
+  },
+
+  "_validation_code": {
+    "description": "Exemple de validation dans un Code node n8n",
+    "javascript": "function validateTriageOutput(raw) {\n  let parsed;\n  try {\n    parsed = JSON.parse(raw);\n  } catch(e) {\n    return { valid: false, error: 'JSON_PARSE_ERROR', data: null };\n  }\n  const required = ['summary','priority','category','needs_reply','recommended_action','risk_signals','questions_to_confirm','confidence'];\n  const validPriority = ['P1','P2','P3'];\n  const validCategory = ['CLIENT','BILLING','INCIDENT','ADMIN','HR','SPAM','OTHER'];\n  const validAction = ['DRAFT_REPLY','ARCHIVE','FOLLOW_UP','ESCALATE','IGNORE'];\n  for (const field of required) {\n    if (parsed[field] === undefined) return { valid: false, error: `MISSING_FIELD_${field}`, data: null };\n  }\n  if (!validPriority.includes(parsed.priority)) return { valid: false, error: 'INVALID_PRIORITY', data: null };\n  if (!validCategory.includes(parsed.category)) return { valid: false, error: 'INVALID_CATEGORY', data: null };\n  if (!validAction.includes(parsed.recommended_action)) return { valid: false, error: 'INVALID_ACTION', data: null };\n  if (typeof parsed.confidence !== 'number' || parsed.confidence < 0 || parsed.confidence > 1) return { valid: false, error: 'INVALID_CONFIDENCE', data: null };\n  return { valid: true, error: null, data: parsed };\n}"
+  }
+}

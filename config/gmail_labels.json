@@ -1,0 +1,96 @@
+{
+  "_comment": "Mapping des labels Gmail pour le POC. Remplacer les Label_xxx par les vrais IDs Gmail.",
+  "_how_to_get_ids": "Gmail API > GET https://gmail.googleapis.com/gmail/v1/users/me/labels",
+  "_version": "1.0",
+
+  "system_labels": {
+    "INBOX":     "INBOX",
+    "SENT":      "SENT",
+    "DRAFT":     "DRAFT",
+    "SPAM":      "SPAM",
+    "TRASH":     "TRASH",
+    "UNREAD":    "UNREAD",
+    "STARRED":   "STARRED",
+    "IMPORTANT": "IMPORTANT"
+  },
+
+  "custom_labels": {
+    "poc_processed": {
+      "id": "Label_poc_processed",
+      "name": "POC/Traité",
+      "description": "Email traité par le workflow automatique",
+      "color": { "background": "#16a766", "text": "#ffffff" },
+      "to_create": true
+    },
+    "poc_p1_urgent": {
+      "id": "Label_poc_p1_urgent",
+      "name": "POC/P1-Urgent",
+      "description": "Priorité 1 — action immédiate requise",
+      "color": { "background": "#cc3a21", "text": "#ffffff" },
+      "to_create": true
+    },
+    "poc_p2_normal": {
+      "id": "Label_poc_p2_normal",
+      "name": "POC/P2-Normal",
+      "description": "Priorité 2 — traitement dans la journée",
+      "color": { "background": "#f2a60d", "text": "#000000" },
+      "to_create": true
+    },
+    "poc_p3_low": {
+      "id": "Label_poc_p3_low",
+      "name": "POC/P3-Faible",
+      "description": "Priorité 3 — peut attendre",
+      "color": { "background": "#b9cdf1", "text": "#000000" },
+      "to_create": true
+    },
+    "poc_high_risk": {
+      "id": "Label_poc_high_risk",
+      "name": "POC/HighRisk",
+      "description": "Email à haut risque phishing — ne pas répondre",
+      "color": { "background": "#711a36", "text": "#ffffff" },
+      "to_create": true
+    },
+    "poc_draft_ready": {
+      "id": "Label_poc_draft_ready",
+      "name": "POC/Draft-Prêt",
+      "description": "Brouillon rédigé, en attente d'approbation",
+      "color": { "background": "#4986e7", "text": "#ffffff" },
+      "to_create": true
+    },
+    "poc_sent_approved": {
+      "id": "Label_poc_sent_approved",
+      "name": "POC/Envoyé-Approuvé",
+      "description": "Réponse envoyée après approbation Telegram",
+      "color": { "background": "#16a766", "text": "#ffffff" },
+      "to_create": true
+    },
+    "poc_escalated": {
+      "id": "Label_poc_escalated",
+      "name": "POC/Escaladé",
+      "description": "Email escaladé pour traitement manuel",
+      "color": { "background": "#a46a21", "text": "#ffffff" },
+      "to_create": true
+    },
+    "poc_ignored": {
+      "id": "Label_poc_ignored",
+      "name": "POC/Ignoré",
+      "description": "Email ignoré par décision opérateur",
+      "color": { "background": "#999999", "text": "#ffffff" },
+      "to_create": true
+    }
+  },
+
+  "action_to_labels": {
+    "DRAFT_READY":     ["poc_processed", "poc_draft_ready"],
+    "SENT_APPROVED":   ["poc_processed", "poc_sent_approved"],
+    "ARCHIVED":        ["poc_processed"],
+    "ESCALATED":       ["poc_processed", "poc_escalated"],
+    "HIGH_RISK":       ["poc_high_risk"],
+    "IGNORED":         ["poc_processed", "poc_ignored"],
+    "P1":              ["poc_p1_urgent"],
+    "P2":              ["poc_p2_normal"],
+    "P3":              ["poc_p3_low"]
+  },
+
+  "creation_script": "Pour créer les labels manquants: voir scripts/create_gmail_labels.md"
+}

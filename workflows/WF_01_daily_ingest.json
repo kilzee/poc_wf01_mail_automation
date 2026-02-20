@@ -1,0 +1,919 @@
+{
+  "meta": {
+    "instanceId": "poc-gmail-automation"
+  },
+  "name": "WF_01 - Daily Ingest & Analyze",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "Déclencher manuellement pour tests"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "Schedule Trigger (8h lun-ven)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 460]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "node-merge-triggers",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [480, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// INIT — Paramètres du run\n// ============================================================\nconst now = new Date();\nconst runId = `run_${now.toISOString().replace(/[^0-9]/g,'').slice(0,14)}`;\n\nconst demoMode = ($env['DEMO_MODE'] || 'true') === 'true';\nconst maxEmails = parseInt($env['MAX_EMAILS_PER_RUN'] || '50');\nconst anthropicKey = $env['ANTHROPIC_API_KEY'] || '';\nconst anthropicModel = $env['ANTHROPIC_MODEL'] || 'claude-sonnet-4-6';\nconst telegramToken = $env['TELEGRAM_BOT_TOKEN'] || '';\nconst telegramChatId = $env['TELEGRAM_CHAT_ID'] || '';\nconst riskAlertThreshold = parseInt($env['RISK_ALERT_THRESHOLD'] || '70');\n\n// Période de recherche Gmail (dernières 24h)\nconst since = new Date(now - 24*60*60*1000);\nconst gmailQuery = `in:inbox is:unread after:${Math.floor(since.getTime()/1000)}`;\n\nreturn [{\n  json: {\n    run_id: runId,\n    demo_mode: demoMode,\n    max_emails: maxEmails,\n    anthropic_key: anthropicKey,\n    anthropic_model: anthropicModel,\n    telegram_token: telegramToken,\n    telegram_chat_id: telegramChatId,\n    risk_alert_threshold: riskAlertThreshold,\n    gmail_query: gmailQuery,\n    run_start: now.toISOString(),\n    stats: {\n      total_fetched: 0,\n      total_processed: 0,\n      total_duplicates: 0,\n      count_p1: 0, count_p2: 0, count_p3: 0,\n      count_high_risk: 0, count_med_risk: 0, count_low_risk: 0,\n      count_drafts: 0, count_errors: 0\n    }\n  }\n}];"
+      },
+      "id": "node-init-config",
+      "name": "Init Run Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 380]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "CREATE TABLE IF NOT EXISTS email_processing (\n  id SERIAL PRIMARY KEY,\n  gmail_message_id VARCHAR(255) NOT NULL UNIQUE,\n  thread_id VARCHAR(255),\n  message_id_header VARCHAR(512),\n  from_email VARCHAR(512),\n  from_name VARCHAR(255),\n  reply_to VARCHAR(512),\n  subject TEXT,\n  received_at TIMESTAMP WITH TIME ZONE,\n  snippet TEXT,\n  state VARCHAR(50) DEFAULT 'NEW',\n  risk_level VARCHAR(10),\n  risk_score INTEGER,\n  risk_reasons JSONB DEFAULT '[]',\n  block_send BOOLEAN DEFAULT FALSE,\n  priority VARCHAR(5),\n  category VARCHAR(50),\n  needs_reply BOOLEAN DEFAULT FALSE,\n  recommended_action VARCHAR(50),\n  llm_summary TEXT,\n  llm_confidence DECIMAL(3,2),\n  llm_response JSONB,\n  llm_fallback_used BOOLEAN DEFAULT FALSE,\n  draft_id VARCHAR(255),\n  draft_subject TEXT,\n  draft_body_preview TEXT,\n  telegram_message_id BIGINT,\n  operator_action VARCHAR(50),\n  operator_telegram_id BIGINT,\n  operator_action_at TIMESTAMP WITH TIME ZONE,\n  is_vip BOOLEAN DEFAULT FALSE,\n  is_internal BOOLEAN DEFAULT FALSE,\n  is_demo BOOLEAN DEFAULT FALSE,\n  run_id VARCHAR(50),\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),\n  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\nCREATE TABLE IF NOT EXISTS audit_log (\n  id SERIAL PRIMARY KEY,\n  gmail_message_id VARCHAR(255),\n  thread_id VARCHAR(255),\n  action VARCHAR(100) NOT NULL,\n  actor VARCHAR(100) NOT NULL,\n  result VARCHAR(20) DEFAULT 'success',\n  details JSONB,\n  error_message TEXT,\n  is_demo BOOLEAN DEFAULT FALSE,\n  run_id VARCHAR(50),\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\nCREATE TABLE IF NOT EXISTS run_stats (\n  id SERIAL PRIMARY KEY,\n  run_id VARCHAR(50) UNIQUE NOT NULL,\n  run_date DATE NOT NULL,\n  run_start TIMESTAMP WITH TIME ZONE,\n  run_end TIMESTAMP WITH TIME ZONE,\n  duration_seconds INTEGER,\n  total_fetched INTEGER DEFAULT 0,\n  total_processed INTEGER DEFAULT 0,\n  total_duplicates INTEGER DEFAULT 0,\n  count_p1 INTEGER DEFAULT 0,\n  count_p2 INTEGER DEFAULT 0,\n  count_p3 INTEGER DEFAULT 0,\n  count_high_risk INTEGER DEFAULT 0,\n  count_drafts_created INTEGER DEFAULT 0,\n  count_sent INTEGER DEFAULT 0,\n  count_errors INTEGER DEFAULT 0,\n  is_demo BOOLEAN DEFAULT FALSE,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\nSELECT 'DB initialized' AS status;"
+      },
+      "id": "node-db-init",
+      "name": "Init DB Tables",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [960, 380],
+      "credentials": {
+        "postgres": {
+          "name": "Postgres POC"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": "={{ $('Init Run Config').item.json.max_emails }}",
+        "filters": {
+          "q": "={{ $('Init Run Config').item.json.gmail_query }}"
+        },
+        "options": {
+          "downloadAttachments": false,
+          "format": "metadata"
+        }
+      },
+      "id": "node-gmail-fetch",
+      "name": "Gmail — Fetch Unread Messages",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1200, 380],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-messages",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-has-messages",
+      "name": "IF Has Messages",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1440, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pas d'emails à traiter\nconst config = $('Init Run Config').item.json;\nreturn [{ json: { message: 'Aucun email non lu — run terminé', run_id: config.run_id, demo_mode: config.demo_mode } }];"
+      },
+      "id": "node-no-messages",
+      "name": "No Messages — Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 500]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-split-batches",
+      "name": "Split In Batches (1 by 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1680, 280]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "options": {
+          "format": "full"
+        }
+      },
+      "id": "node-gmail-get-full",
+      "name": "Gmail — Get Full Message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1920, 280],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// NORMALIZE — Extraire et normaliser les données de l'email\n// ============================================================\nconst msg = $json;\nconst payload = msg.payload || {};\nconst headers = payload.headers || [];\n\nconst getHeader = (name) => {\n  const h = headers.find(h => h.name.toLowerCase() === name.toLowerCase());\n  return h ? h.value : null;\n};\n\n// Extraire le corps de l'email\nfunction extractBody(payload) {\n  let textBody = '';\n  let htmlBody = '';\n\n  const processPartsRecursive = (parts) => {\n    if (!parts) return;\n    for (const part of parts) {\n      if (part.mimeType === 'text/plain' && part.body?.data) {\n        textBody += Buffer.from(part.body.data, 'base64').toString('utf8');\n      } else if (part.mimeType === 'text/html' && part.body?.data) {\n        htmlBody += Buffer.from(part.body.data, 'base64').toString('utf8');\n      }\n      if (part.parts) processPartsRecursive(part.parts);\n    }\n  };\n\n  if (payload.body?.data) {\n    const decoded = Buffer.from(payload.body.data, 'base64').toString('utf8');\n    if (payload.mimeType === 'text/html') htmlBody = decoded;\n    else textBody = decoded;\n  }\n  processPartsRecursive(payload.parts);\n\n  return { textBody, htmlBody };\n}\n\n// Convertir HTML en texte brut\nfunction htmlToText(html) {\n  if (!html) return '';\n  return html\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<a[^>]+href=['\"]([^'\"]+)['\"][^>]*>([^<]+)<\\/a>/gi, '$2 [$1]')\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<p[^>]*>/gi, '\\n')\n    .replace(/<\\/p>/gi, '\\n')\n    .replace(/<li[^>]*>/gi, '\\n• ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\n// Extraire les URLs du texte\nfunction extractUrls(text) {\n  const urlRegex = /https?:\\/\\/[^\\s<>\"\\]\\[]+/g;\n  const matches = text.match(urlRegex) || [];\n  return [...new Set(matches)].slice(0, 20);\n}\n\n// Extraire les pièces jointes\nfunction extractAttachments(payload) {\n  const attachments = [];\n  const process = (parts) => {\n    if (!parts) return;\n    for (const part of parts) {\n      if (part.filename && part.body?.attachmentId) {\n        attachments.push({\n          name: part.filename,\n          mimeType: part.mimeType,\n          size: part.body.size || 0,\n          attachmentId: part.body.attachmentId\n        });\n      }\n      if (part.parts) process(part.parts);\n    }\n  };\n  process(payload.parts);\n  return attachments;\n}\n\n// Parser l'adresse email\nfunction parseEmailAddress(raw) {\n  if (!raw) return { email: null, name: null };\n  const match = raw.match(/^(.+?)\\s*<([^>]+)>$/);\n  if (match) return { name: match[1].trim().replace(/^\"|\"$/g, ''), email: match[2].trim().toLowerCase() };\n  return { email: raw.trim().toLowerCase(), name: null };\n}\n\n// Construire l'objet normalisé\nconst fromRaw = getHeader('from');\nconst fromParsed = parseEmailAddress(fromRaw);\nconst replyToRaw = getHeader('reply-to');\nconst replyToParsed = parseEmailAddress(replyToRaw);\n\nconst { textBody, htmlBody } = extractBody(payload);\nconst bodyText = textBody || htmlToText(htmlBody);\nconst bodyTextTruncated = bodyText.slice(0, 4000);\n\nconst urls = extractUrls(bodyText + ' ' + htmlBody);\nconst attachments = extractAttachments(payload);\n\nconst normalizedEmail = {\n  gmail_message_id: msg.id,\n  thread_id: msg.threadId,\n  message_id_header: getHeader('message-id'),\n  from_email: fromParsed.email,\n  from_name: fromParsed.name,\n  from_raw: fromRaw,\n  reply_to: replyToParsed.email,\n  reply_to_raw: replyToRaw,\n  subject: getHeader('subject') || '(sans objet)',\n  date: getHeader('date'),\n  received_at: new Date(parseInt(msg.internalDate || Date.now())).toISOString(),\n  snippet: msg.snippet || '',\n  body_text: bodyTextTruncated,\n  body_html_length: htmlBody.length,\n  urls: urls,\n  attachments: attachments,\n  labels: msg.labelIds || [],\n  // Config run (depuis le premier nœud)\n  _run_id: $('Init Run Config').item.json.run_id,\n  _demo_mode: $('Init Run Config').item.json.demo_mode,\n  _anthropic_key: $('Init Run Config').item.json.anthropic_key,\n  _anthropic_model: $('Init Run Config').item.json.anthropic_model,\n  _telegram_token: $('Init Run Config').item.json.telegram_token,\n  _telegram_chat_id: $('Init Run Config').item.json.telegram_chat_id,\n  _risk_alert_threshold: $('Init Run Config').item.json.risk_alert_threshold\n};\n\nreturn [{ json: normalizedEmail }];"
+      },
+      "id": "node-normalize",
+      "name": "Normalize Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 280]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "value": "email_processing",
+          "mode": "list"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "gmail_message_id",
+              "condition": "equal",
+              "value": "={{ $json.gmail_message_id }}"
+            }
+          ]
+        },
+        "limit": 1,
+        "options": {}
+      },
+      "id": "node-check-dup",
+      "name": "Postgres — Check Duplicate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [2400, 280],
+      "credentials": {
+        "postgres": {
+          "name": "Postgres POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vérifier si l'email a déjà été traité\nconst dbResult = $json;\nconst isDuplicate = dbResult && dbResult.gmail_message_id;\n\n// Passer les données de l'étape normalize\nconst emailData = $('Normalize Email').item.json;\n\nreturn [{\n  json: {\n    ...emailData,\n    _is_duplicate: isDuplicate,\n    _existing_state: isDuplicate ? dbResult.state : null\n  }\n}];"
+      },
+      "id": "node-check-dup-result",
+      "name": "Check Dup Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 280]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-is-dup",
+              "leftValue": "={{ $json._is_duplicate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-duplicate",
+      "name": "IF Duplicate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2880, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email déjà traité — skip\nreturn [{ json: { skipped: true, reason: 'DUPLICATE', gmail_message_id: $json.gmail_message_id } }];"
+      },
+      "id": "node-skip-dup",
+      "name": "Skip — Already Processed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3120, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// SECURITY ANALYSIS — Score anti-phishing 0-100\n// ============================================================\nconst email = $json;\nlet score = 0;\nconst reasons = [];\n\n// --- Charger les règles (config hardcodée pour n8n — lire scoring_rules.json si possible) ---\nconst SHORTENED_DOMAINS = ['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','short.io','rebrand.ly','is.gd','tiny.cc','shorturl.at'];\nconst SUSPICIOUS_TLDS = ['.xyz','.top','.club','.online','.site','.store','.icu','.live','.click','.monster','.vip','.cam','.loan','.work','.gq','.ml','.cf','.tk','.ga'];\nconst FORBIDDEN_EXTS = ['.exe','.msi','.bat','.cmd','.ps1','.vbs','.scr','.pif','.hta','.wsf','.jar'];\nconst MACRO_EXTS = ['.xlsm','.docm','.pptm','.xlsb','.xltm','.dotm','.potm'];\nconst FREE_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','live.com','aol.com'];\nconst URGENCY_KW = ['urgent','immédiat','imminent','action requise','compte bloqué','vérification requise','confirmer maintenant','délai expiré','final notice','account suspended','verify now','action required','expires today','last chance'];\nconst SECRET_KW = ['mot de passe','code otp','code de vérification','numéro de carte','rib','coordonnées bancaires','password','otp','verification code','credit card','bank account','social security','pin number'];\n\nconst fromEmail = (email.from_email || '').toLowerCase();\nconst fromName = (email.from_name || '').toLowerCase();\nconst replyTo = (email.reply_to || '').toLowerCase();\nconst subject = (email.subject || '').toLowerCase();\nconst bodyText = (email.body_text || '').toLowerCase();\nconst urls = email.urls || [];\nconst attachments = email.attachments || [];\n\n// Extraire domaine\nconst extractDomain = (emailAddr) => {\n  if (!emailAddr) return null;\n  const parts = emailAddr.split('@');\n  return parts.length > 1 ? parts[1].toLowerCase() : null;\n};\n\nconst fromDomain = extractDomain(fromEmail);\nconst replyToDomain = extractDomain(replyTo);\n\n// 1. Display name mismatch\nif (fromName && fromDomain) {\n  const knownBrands = ['paypal','amazon','microsoft','google','apple','facebook','netflix','ameli','impots'];\n  for (const brand of knownBrands) {\n    if (fromName.includes(brand) && !fromDomain.includes(brand)) {\n      score += 20;\n      reasons.push(`display_name_mismatch: nom '${fromName}' ne correspond pas au domaine '${fromDomain}'`);\n      break;\n    }\n  }\n}\n\n// 2. Reply-To domaine différent\nif (replyTo && fromDomain && replyToDomain && replyToDomain !== fromDomain) {\n  score += 25;\n  reasons.push(`reply_to_different_domain: reply-to '${replyToDomain}' ≠ expéditeur '${fromDomain}'`);\n}\n\n// 3. Lookalike domain (typosquatting)\nconst LOOKALIKE_TARGETS = [\n  {legit: 'paypal.com', typos: ['paypa1','pay-pal','paypai','paypa1.com']},\n  {legit: 'amazon.com', typos: ['arnazon','amaz0n','amazon-secure']},\n  {legit: 'microsoft.com', typos: ['micros0ft','microsoftonline.net','microsoft-login']},\n  {legit: 'google.com', typos: ['g00gle','goggle.com','google-secure']},\n  {legit: 'apple.com', typos: ['apple-id.com','app1e','apple-support']},\n  {legit: 'impots.gouv.fr', typos: ['impots-gouv','impots.fr.','imp0ts']},\n  {legit: 'ameli.fr', typos: ['ameli-fr','amelie.fr','ameli-sante']}\n];\nfor (const target of LOOKALIKE_TARGETS) {\n  for (const typo of target.typos) {\n    if (fromDomain && fromDomain.includes(typo)) {\n      score += 35;\n      reasons.push(`lookalike_domain: '${fromDomain}' ressemble à '${target.legit}'`);\n      break;\n    }\n  }\n}\n\n// 4. Mots d'urgence\nconst foundUrgency = URGENCY_KW.filter(kw => subject.includes(kw) || bodyText.includes(kw));\nif (foundUrgency.length > 0) {\n  score += Math.min(15 * foundUrgency.length, 20);\n  reasons.push(`urgency_keywords: ${foundUrgency.slice(0,3).join(', ')}`);\n}\n\n// 5. Demande de secrets\nconst foundSecrets = SECRET_KW.filter(kw => bodyText.includes(kw));\nif (foundSecrets.length > 0) {\n  score += 40;\n  reasons.push(`secret_request: demande de '${foundSecrets.slice(0,2).join(', ')}'`);\n}\n\n// 6. URLs raccourcies\nconst shortUrls = urls.filter(url => SHORTENED_DOMAINS.some(d => url.includes(d)));\nif (shortUrls.length > 0) {\n  score += 20;\n  reasons.push(`shortened_url: ${shortUrls.length} URL(s) raccourcie(s)`);\n}\n\n// 7. IP literal dans URL\nconst ipUrls = urls.filter(url => /https?:\\/\\/\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/i.test(url));\nif (ipUrls.length > 0) {\n  score += 35;\n  reasons.push(`ip_literal_url: URL vers adresse IP directe`);\n}\n\n// 8. TLD suspect\nif (fromDomain) {\n  const suspTld = SUSPICIOUS_TLDS.find(tld => fromDomain.endsWith(tld));\n  if (suspTld) {\n    score += 20;\n    reasons.push(`suspicious_tld: TLD '${suspTld}' inhabituel`);\n  }\n}\n\n// 9. Punycode / xn--\nif (fromDomain && fromDomain.startsWith('xn--')) {\n  score += 30;\n  reasons.push(`punycode_domain: domaine punycode '${fromDomain}'`);\n}\n\n// 10. Pièces jointes suspectes\nlet attachmentRisk = 'safe';\nfor (const att of attachments) {\n  const ext = '.' + (att.name || '').split('.').pop().toLowerCase();\n  if (FORBIDDEN_EXTS.includes(ext)) {\n    score += 50;\n    reasons.push(`forbidden_attachment: '${att.name}' — extension interdite`);\n    attachmentRisk = 'forbidden';\n  } else if (MACRO_EXTS.includes(ext)) {\n    score += 40;\n    reasons.push(`macro_attachment: '${att.name}' — macro Office possible`);\n    if (attachmentRisk !== 'forbidden') attachmentRisk = 'macro';\n  } else if (['.zip','.rar','.7z','.iso','.img'].includes(ext)) {\n    score += 10;\n    reasons.push(`archive_attachment: '${att.name}' — archive (vérifier le contenu)`);\n    if (attachmentRisk === 'safe') attachmentRisk = 'archive';\n  }\n}\n\n// 11. Free email impersonation\nif (fromDomain && FREE_DOMAINS.includes(fromDomain)) {\n  const corporate = ['facture','invoice','payment','support','security','admin','service','bank','legal'];\n  const impersonates = corporate.some(kw => fromName.includes(kw) || subject.includes(kw));\n  if (impersonates) {\n    score += 20;\n    reasons.push(`free_email_impersonation: domaine gratuit '${fromDomain}' utilisé pour imiter un service pro`);\n  }\n}\n\n// Calculer le niveau de risque\nscore = Math.min(score, 100);\nconst riskLevel = score >= 70 ? 'HIGH' : score >= 30 ? 'MED' : 'LOW';\nconst blockSend = riskLevel === 'HIGH' || attachmentRisk === 'forbidden';\nconst requiresReview = riskLevel !== 'LOW' || attachments.length > 0;\n\nreturn [{\n  json: {\n    ...email,\n    risk_score: score,\n    risk_level: riskLevel,\n    risk_reasons: reasons,\n    block_send: blockSend,\n    requires_manual_review: requiresReview,\n    attachments_risk: attachmentRisk\n  }\n}];"
+      },
+      "id": "node-security-analysis",
+      "name": "Security Analysis (Anti-Phishing)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// VIP CHECK — Vérifier si expéditeur est VIP\n// ============================================================\nconst email = $json;\nconst fromEmail = (email.from_email || '').toLowerCase();\nconst fromDomain = fromEmail.includes('@') ? fromEmail.split('@')[1] : '';\nconst subject = (email.subject || '').toLowerCase();\n\n// VIP emails (depuis config — hardcodé pour POC, à externaliser)\nconst VIP_EMAILS = ($env['VIP_EMAILS'] || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);\nconst VIP_DOMAINS = ($env['VIP_DOMAINS'] || '').split(',').map(d => d.trim().toLowerCase()).filter(Boolean);\nconst INTERNAL_DOMAINS = ($env['INTERNAL_DOMAINS'] || '').split(',').map(d => d.trim().toLowerCase()).filter(Boolean);\nconst VIP_KW_SUBJECT = ['incident critique','production down','litige','mise en demeure','data breach','budget','contrat urgent'];\n\nconst isVip = VIP_EMAILS.includes(fromEmail) ||\n  VIP_DOMAINS.some(d => fromDomain.endsWith(d));\nconst isInternal = INTERNAL_DOMAINS.some(d => fromDomain.endsWith(d));\nconst hasVipKeyword = VIP_KW_SUBJECT.some(kw => subject.includes(kw));\n\n// Force P1 si VIP ou keyword critique\nlet forcePriority = null;\nif (isVip || hasVipKeyword) forcePriority = 'P1';\n\nreturn [{\n  json: {\n    ...email,\n    is_vip: isVip,\n    is_internal: isInternal,\n    force_priority: forcePriority\n  }\n}];"
+      },
+      "id": "node-vip-check",
+      "name": "VIP Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3360, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-not-high",
+              "leftValue": "={{ $json.risk_level }}",
+              "rightValue": "HIGH",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-not-high-risk",
+      "name": "IF Not HIGH Risk",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3600, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email HIGH risk — préparer pour escalade, pas de draft\nconst email = $json;\nreturn [{\n  json: {\n    ...email,\n    priority: 'P1',\n    category: 'SPAM',\n    needs_reply: false,\n    recommended_action: 'ESCALATE',\n    llm_summary: `Email HIGH RISK (score: ${email.risk_score}) — Signaux: ${email.risk_reasons.slice(0,3).join('; ')}`,\n    llm_confidence: 0.9,\n    draft_id: null,\n    _skip_llm: true,\n    _high_risk_escalation: true\n  }\n}];"
+      },
+      "id": "node-high-risk-handler",
+      "name": "HIGH Risk — Escalade (no draft)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3840, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Init Run Config').item.json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $('Init Run Config').item.json.anthropic_model }}\",\n  \"max_tokens\": 2048,\n  \"temperature\": 0.1,\n  \"system\": \"Tu es un assistant expert en gestion de boîte mail professionnelle. Tu analyses des emails et tu retournes UNIQUEMENT un objet JSON valide, sans aucun texte avant ou après.\\n\\nSchéma JSON de sortie OBLIGATOIRE:\\n{\\\"summary\\\":\\\"string\\\",\\\"priority\\\":\\\"P1|P2|P3\\\",\\\"category\\\":\\\"CLIENT|BILLING|INCIDENT|ADMIN|HR|SPAM|OTHER\\\",\\\"needs_reply\\\":true,\\\"recommended_action\\\":\\\"DRAFT_REPLY|ARCHIVE|FOLLOW_UP|ESCALATE|IGNORE\\\",\\\"risk_signals\\\":[\\\"string\\\"],\\\"draft_reply\\\":{\\\"subject\\\":\\\"string\\\",\\\"body\\\":\\\"string\\\"},\\\"questions_to_confirm\\\":[\\\"string\\\"],\\\"confidence\\\":0.0}\\n\\nRègles CRITIQUES:\\n- P1: incident critique, client VIP, litige, urgence réelle\\n- P2: client standard, facture, réunion importante\\n- P3: newsletter, CC informatif, demande non urgente\\n- needs_reply: false pour newsletters, confirmations auto, CC\\n- recommended_action DRAFT_REPLY uniquement si needs_reply=true\\n- draft_reply: null si needs_reply=false\\n- Ne JAMAIS demander mot de passe, OTP, coordonnées bancaires dans draft_reply\\n- Répondre UNIQUEMENT avec le JSON, rien d'autre\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"EMAIL À ANALYSER:\\n\\nDe: {{ $json.from_name }} <{{ $json.from_email }}>\\nSujet: {{ $json.subject }}\\nDate: {{ $json.received_at }}\\nReply-To: {{ $json.reply_to || 'même que expéditeur' }}\\n\\nCORPS:\\n{{ $json.body_text.slice(0, 3000) }}\\n\\nCONTEXTE:\\n- Expéditeur VIP: {{ $json.is_vip }}\\n- Domaine interne: {{ $json.is_internal }}\\n- Score risk phishing: {{ $json.risk_score }}/100 ({{ $json.risk_level }})\\n- Signaux phishing: {{ $json.risk_reasons.join(', ') || 'aucun' }}\\n- Pièces jointes: {{ $json.attachments.length > 0 ? $json.attachments.map(a => a.name).join(', ') : 'aucune' }}\\n\\nRetourne uniquement le JSON d'analyse.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-llm-triage",
+      "name": "LLM Triage (Claude API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3840, 120],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// PARSE & VALIDATE LLM TRIAGE RESPONSE\n// ============================================================\nconst email = $('VIP Check').item.json;\nconst llmResponse = $json;\n\n// Valeurs de fallback (si parsing échoue)\nconst FALLBACK = {\n  summary: 'Analyse automatique indisponible — traitement manuel requis',\n  priority: email.force_priority || 'P2',\n  category: 'OTHER',\n  needs_reply: false,\n  recommended_action: 'ESCALATE',\n  risk_signals: ['LLM_PARSING_FAILURE'],\n  draft_reply: null,\n  questions_to_confirm: ['Vérification manuelle requise'],\n  confidence: 0.0\n};\n\nlet parsed = null;\nlet parseError = null;\nlet fallbackUsed = false;\n\ntry {\n  // Extraire le texte de la réponse Anthropic\n  const content = llmResponse?.content?.[0]?.text || llmResponse?.error?.message || '';\n\n  if (!content || llmResponse?.error) {\n    throw new Error(llmResponse?.error?.message || 'Réponse LLM vide ou erreur API');\n  }\n\n  // Nettoyer le JSON (enlever markdown si présent)\n  const cleaned = content.replace(/```json\\n?/gi, '').replace(/```\\n?/gi, '').trim();\n  parsed = JSON.parse(cleaned);\n\n  // Valider les champs obligatoires\n  const VALID_PRIORITIES = ['P1','P2','P3'];\n  const VALID_CATEGORIES = ['CLIENT','BILLING','INCIDENT','ADMIN','HR','SPAM','OTHER'];\n  const VALID_ACTIONS = ['DRAFT_REPLY','ARCHIVE','FOLLOW_UP','ESCALATE','IGNORE'];\n\n  if (!VALID_PRIORITIES.includes(parsed.priority)) throw new Error(`priority invalide: ${parsed.priority}`);\n  if (!VALID_CATEGORIES.includes(parsed.category)) throw new Error(`category invalide: ${parsed.category}`);\n  if (!VALID_ACTIONS.includes(parsed.recommended_action)) throw new Error(`action invalide: ${parsed.recommended_action}`);\n  if (typeof parsed.confidence !== 'number') parsed.confidence = 0.5;\n\n  // Appliquer la priorité forcée (VIP)\n  if (email.force_priority && VALID_PRIORITIES.includes(email.force_priority)) {\n    parsed.priority = email.force_priority;\n  }\n\n  // Garde-fous sur le draft\n  if (parsed.draft_reply) {\n    const FORBIDDEN_DRAFT_KW = ['mot de passe','password','otp','code secret','numéro de carte','rib','coordonnées bancaires','credit card','bank account','pin'];\n    const draftBody = (parsed.draft_reply.body || '').toLowerCase();\n    const hasForbidden = FORBIDDEN_DRAFT_KW.some(kw => draftBody.includes(kw));\n    if (hasForbidden) {\n      parsed.draft_reply = null;\n      parsed.risk_signals = [...(parsed.risk_signals || []), 'DRAFT_FORBIDDEN_CONTENT_REMOVED'];\n    }\n  }\n\n} catch (e) {\n  parseError = e.message;\n  parsed = { ...FALLBACK };\n  if (email.force_priority) parsed.priority = email.force_priority;\n  fallbackUsed = true;\n}\n\nreturn [{\n  json: {\n    ...email,\n    priority: parsed.priority,\n    category: parsed.category,\n    needs_reply: parsed.needs_reply,\n    recommended_action: parsed.recommended_action,\n    llm_summary: parsed.summary,\n    llm_confidence: parsed.confidence,\n    llm_risk_signals: parsed.risk_signals || [],\n    llm_draft: parsed.draft_reply,\n    llm_questions: parsed.questions_to_confirm || [],\n    llm_response_raw: llmResponse,\n    llm_parse_error: parseError,\n    llm_fallback_used: fallbackUsed\n  }\n}];"
+      },
+      "id": "node-parse-triage",
+      "name": "Parse & Validate Triage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4080, 120]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "node-merge-risk-paths",
+      "name": "Merge Risk Paths",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [4320, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-needs-draft",
+              "leftValue": "={{ $json.needs_reply }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "cond-not-blocked",
+              "leftValue": "={{ $json.block_send }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            },
+            {
+              "id": "cond-draft-ready",
+              "leftValue": "={{ $json.recommended_action }}",
+              "rightValue": "DRAFT_REPLY",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-needs-draft",
+      "name": "IF Needs Draft",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [4560, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Init Run Config').item.json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $('Init Run Config').item.json.anthropic_model }}\",\n  \"max_tokens\": 1500,\n  \"temperature\": 0.3,\n  \"system\": \"Tu es un assistant expert en communication professionnelle. Tu rédiges des brouillons de réponse à des emails. Tu retournes UNIQUEMENT un objet JSON.\\n\\nSchéma: {\\\"subject\\\":\\\"string\\\",\\\"body\\\":\\\"string\\\",\\\"tone\\\":\\\"formal|neutral|friendly\\\",\\\"language\\\":\\\"fr|en\\\",\\\"has_placeholders\\\":true,\\\"placeholder_list\\\":[\\\"string\\\"],\\\"warnings\\\":[\\\"string\\\"],\\\"confidence\\\":0.0}\\n\\nRègles ABSOLUES:\\n- Utiliser {A_CONFIRMER: description} pour toute info non vérifiable\\n- INTERDIT: demander mot de passe, OTP, coordonnées bancaires\\n- INTERDIT: promettre des engagements non vérifiés\\n- Réponse concise et professionnelle\\n- JSON uniquement, rien d'autre\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Rédige un brouillon de réponse pour:\\n\\nDe: {{ $json.from_name }} <{{ $json.from_email }}>\\nSujet: {{ $json.subject }}\\nPriorité: {{ $json.priority }} | Catégorie: {{ $json.category }}\\nRisk: {{ $json.risk_level }} ({{ $json.risk_score }}/100)\\n\\nEMAIL ORIGINAL:\\n{{ $json.body_text.slice(0, 2000) }}\\n\\nRÉSUMÉ (analyse): {{ $json.llm_summary }}\\nQuestions à clarifier: {{ JSON.stringify($json.llm_questions) }}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-llm-draft",
+      "name": "LLM Draft Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4800, 140],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// PARSE DRAFT LLM RESPONSE\n// ============================================================\nconst email = $('Merge Risk Paths').item.json;\nconst llmResponse = $json;\n\nlet draftData = null;\nlet parseError = null;\n\ntry {\n  const content = llmResponse?.content?.[0]?.text || '';\n  if (!content || llmResponse?.error) throw new Error('Réponse draft vide');\n\n  const cleaned = content.replace(/```json\\n?/gi, '').replace(/```\\n?/gi, '').trim();\n  draftData = JSON.parse(cleaned);\n\n  // Utiliser le draft LLM triage en fallback\n  if (!draftData.body && email.llm_draft) {\n    draftData = email.llm_draft;\n    draftData._from_triage = true;\n  }\n\n  // Garde-fou: vérifier contenu interdit\n  const FORBIDDEN = ['mot de passe','password','otp','numéro de carte','rib','credit card','pin'];\n  const bodyLower = (draftData.body || '').toLowerCase();\n  if (FORBIDDEN.some(kw => bodyLower.includes(kw))) {\n    draftData.body = 'Merci pour votre message. Nous reviendrons vers vous prochainement.';\n    draftData.warnings = [...(draftData.warnings || []), 'FORBIDDEN_CONTENT_SANITIZED'];\n  }\n\n} catch(e) {\n  parseError = e.message;\n  // Fallback: utiliser le draft du triage si disponible\n  if (email.llm_draft) {\n    draftData = { subject: email.llm_draft.subject, body: email.llm_draft.body, tone: 'neutral', language: 'fr', has_placeholders: true, placeholder_list: [], warnings: ['FALLBACK_FROM_TRIAGE'] };\n  } else {\n    draftData = {\n      subject: `Re: ${email.subject}`,\n      body: `Bonjour,\\n\\nMerci pour votre message concernant \"${email.subject}\".\\n\\nNous accusons réception de votre demande et reviendrons vers vous {A_CONFIRMER: délai de réponse}.\\n\\nCordialement,\\n{A_CONFIRMER: votre nom}`,\n      tone: 'neutral', language: 'fr', has_placeholders: true, placeholder_list: ['délai de réponse', 'votre nom'], warnings: ['FALLBACK_GENERIC_DRAFT']\n    };\n  }\n}\n\nreturn [{\n  json: {\n    ...email,\n    draft_subject: draftData.subject || `Re: ${email.subject}`,\n    draft_body: draftData.body || '',\n    draft_tone: draftData.tone || 'neutral',\n    draft_language: draftData.language || 'fr',\n    draft_has_placeholders: draftData.has_placeholders || false,\n    draft_placeholders: draftData.placeholder_list || [],\n    draft_warnings: draftData.warnings || [],\n    draft_parse_error: parseError\n  }\n}];"
+      },
+      "id": "node-parse-draft",
+      "name": "Parse Draft Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5040, 140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-demo-mode",
+              "leftValue": "={{ $json._demo_mode }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-not-demo-draft",
+      "name": "IF Not Demo (Create Draft)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [5280, 140]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $json.draft_subject }}",
+        "message": "={{ $json.draft_body }}",
+        "additionalFields": {
+          "threadId": "={{ $json.thread_id }}",
+          "sendTo": "={{ $json.from_email }}"
+        }
+      },
+      "id": "node-gmail-create-draft",
+      "name": "Gmail — Create Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [5520, 60],
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// [DEMO MODE] Simuler la création du draft\nconst email = $json;\nreturn [{\n  json: {\n    ...email,\n    draft_id: `DEMO_DRAFT_${email.gmail_message_id.slice(-8)}`,\n    draft_created: true,\n    draft_demo: true\n  }\n}];"
+      },
+      "id": "node-demo-draft",
+      "name": "[DEMO] Simulate Draft Creation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5520, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupérer l'ID du draft créé et assembler les données finales\nconst prev = $json;\nconst draftDataFromCreate = prev.draft_id ? prev : $('Gmail — Create Draft').item?.json;\n\nconst draftId = draftDataFromCreate?.id || draftDataFromCreate?.draft_id || null;\n\nreturn [{\n  json: {\n    ...prev,\n    draft_id: draftId,\n    draft_created: !!draftId,\n    state: draftId ? 'DRAFT_READY' : 'NEEDS_REPLY'\n  }\n}];"
+      },
+      "id": "node-collect-draft-id",
+      "name": "Collect Draft ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5760, 140]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "node-merge-draft-paths",
+      "name": "Merge All Paths",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [6000, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// PERSIST — Sauvegarder en base de données\n// ============================================================\nconst email = $json;\n\n// Préparer l'état final\nlet state = 'ANALYZED';\nif (email.risk_level === 'HIGH') state = 'RISK_REVIEW';\nelse if (email.draft_id) state = 'DRAFT_READY';\nelse if (email.needs_reply) state = 'NEEDS_REPLY';\nelse state = 'ANALYZED';\n\nreturn [{\n  json: {\n    ...email,\n    _final_state: state,\n    _persist_ready: true\n  }\n}];"
+      },
+      "id": "node-prepare-persist",
+      "name": "Prepare for Persist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6240, 280]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "value": "email_processing",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "string": [
+              { "name": "gmail_message_id", "value": "={{ $json.gmail_message_id }}" },
+              { "name": "thread_id", "value": "={{ $json.thread_id }}" },
+              { "name": "message_id_header", "value": "={{ $json.message_id_header }}" },
+              { "name": "from_email", "value": "={{ $json.from_email }}" },
+              { "name": "from_name", "value": "={{ $json.from_name }}" },
+              { "name": "reply_to", "value": "={{ $json.reply_to }}" },
+              { "name": "subject", "value": "={{ $json.subject }}" },
+              { "name": "received_at", "value": "={{ $json.received_at }}" },
+              { "name": "snippet", "value": "={{ $json.snippet }}" },
+              { "name": "state", "value": "={{ $json._final_state }}" },
+              { "name": "risk_level", "value": "={{ $json.risk_level }}" },
+              { "name": "risk_reasons", "value": "={{ JSON.stringify($json.risk_reasons) }}" },
+              { "name": "priority", "value": "={{ $json.priority }}" },
+              { "name": "category", "value": "={{ $json.category }}" },
+              { "name": "llm_summary", "value": "={{ $json.llm_summary }}" },
+              { "name": "recommended_action", "value": "={{ $json.recommended_action }}" },
+              { "name": "draft_id", "value": "={{ $json.draft_id }}" },
+              { "name": "draft_subject", "value": "={{ $json.draft_subject }}" },
+              { "name": "run_id", "value": "={{ $json._run_id }}" }
+            ],
+            "number": [
+              { "name": "risk_score", "value": "={{ $json.risk_score }}" },
+              { "name": "llm_confidence", "value": "={{ $json.llm_confidence }}" }
+            ],
+            "boolean": [
+              { "name": "needs_reply", "value": "={{ $json.needs_reply }}" },
+              { "name": "block_send", "value": "={{ $json.block_send }}" },
+              { "name": "is_vip", "value": "={{ $json.is_vip }}" },
+              { "name": "is_internal", "value": "={{ $json.is_internal }}" },
+              { "name": "is_demo", "value": "={{ $json._demo_mode }}" },
+              { "name": "llm_fallback_used", "value": "={{ $json.llm_fallback_used }}" }
+            ]
+          }
+        },
+        "options": {
+          "onConflict": {
+            "action": "ignore"
+          }
+        }
+      },
+      "id": "node-postgres-insert",
+      "name": "Postgres — Persist Email",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [6480, 280],
+      "credentials": {
+        "postgres": {
+          "name": "Postgres POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// TELEGRAM ALERT — Alertes immédiates (P1 ou HIGH risk)\n// ============================================================\nconst email = $json;\nconst demoMode = email._demo_mode;\nconst telegramToken = email._telegram_token;\nconst chatId = email._telegram_chat_id;\nconst threshold = email._risk_alert_threshold || 70;\n\n// Envoyer une alerte si P1 ou HIGH risk\nconst shouldAlert = email.priority === 'P1' || email.risk_level === 'HIGH';\n\nif (!shouldAlert || !telegramToken || !chatId) {\n  return [{ json: { ...email, telegram_alert_sent: false } }];\n}\n\n// Construire le message Telegram\nconst priorityEmoji = { P1: '🔴', P2: '🟡', P3: '🟢' }[email.priority] || '⚪';\nconst riskEmoji = email.risk_level === 'HIGH' ? '🚨' : email.risk_level === 'MED' ? '⚠️' : '✅';\nconst demoTag = demoMode ? '\\n🔵 _[MODE DEMO — aucune action réelle]_' : '';\n\nconst truncSubject = (email.subject || '').slice(0, 80);\nconst truncSummary = (email.llm_summary || '').slice(0, 300);\nconst riskReasons = (email.risk_reasons || []).slice(0, 3).join('\\n• ');\n\nlet text = `${priorityEmoji} *[${email.priority}] ${truncSubject}*\\n`;\ntext += `📧 De: ${email.from_name || ''} <${email.from_email}>\\n`;\ntext += `📁 ${email.category} | ${riskEmoji} Risk: ${email.risk_level} (${email.risk_score}/100)\\n`;\n\nif (riskReasons) text += `\\n🔍 *Signaux:*\\n• ${riskReasons}\\n`;\nif (truncSummary) text += `\\n_${truncSummary}_\\n`;\nif (email.draft_id) text += `\\n📝 Brouillon créé: ✓\\n`;\nif (email.risk_level === 'HIGH') text += `\\n❌ Envoi BLOQUÉ (risque élevé)\\n`;\ntext += demoTag;\n\n// Boutons inline selon le contexte\nlet keyboard = [];\nif (email.risk_level === 'HIGH') {\n  keyboard = [\n    [{text: '🚫 Marquer spam', callback_data: `MARK_SPAM|${email.gmail_message_id}`}, {text: '🔺 Escalader', callback_data: `ESCALATE|${email.gmail_message_id}`}],\n    [{text: '⏭️ Ignorer', callback_data: `IGNORE|${email.gmail_message_id}`}]\n  ];\n} else if (email.draft_id) {\n  keyboard = [\n    [{text: '✅ Approuver & Envoyer', callback_data: `APPROVE_SEND|${email.gmail_message_id}`}],\n    [{text: '✏️ Modifier brouillon', callback_data: `EDIT_DRAFT|${email.gmail_message_id}`}, {text: '💾 Garder brouillon', callback_data: `SAVE_DRAFT_ONLY|${email.gmail_message_id}`}],\n    [{text: '📦 Archiver', callback_data: `ARCHIVE|${email.gmail_message_id}`}, {text: '🔺 Escalader', callback_data: `ESCALATE|${email.gmail_message_id}`}]\n  ];\n} else {\n  keyboard = [\n    [{text: '🔺 Escalader', callback_data: `ESCALATE|${email.gmail_message_id}`}, {text: '📦 Archiver', callback_data: `ARCHIVE|${email.gmail_message_id}`}],\n    [{text: '⏭️ Ignorer', callback_data: `IGNORE|${email.gmail_message_id}`}]\n  ];\n}\n\nconst telegramPayload = {\n  chat_id: chatId,\n  text: text,\n  parse_mode: 'Markdown',\n  reply_markup: JSON.stringify({ inline_keyboard: keyboard })\n};\n\n// Stocker le payload pour envoi via HTTP Request\nreturn [{\n  json: {\n    ...email,\n    telegram_payload: telegramPayload,\n    should_send_telegram: true,\n    telegram_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`\n  }\n}];"
+      },
+      "id": "node-build-telegram-alert",
+      "name": "Build Telegram Alert (P1/HIGH)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6720, 280]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-should-send",
+              "leftValue": "={{ $json.should_send_telegram }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-send-telegram",
+      "name": "IF Send Telegram Alert",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [6960, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.telegram_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.telegram_payload) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-send-telegram-alert",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [7200, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "node-loop-back",
+      "name": "Continue Loop",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [7440, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// BUILD DIGEST — Préparer les données pour le digest Telegram\n// ============================================================\nconst config = $('Init Run Config').item.json;\nconst demoMode = config.demo_mode;\nconst chatId = config.telegram_chat_id;\nconst telegramToken = config.telegram_token;\n\n// Récupérer les stats depuis la DB (via requête agrégée)\n// En pratique, on passe les stats calculées en temps réel\nconst now = new Date();\nconst dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });\nconst timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });\n\n// Le digest sera envoyé avec les stats de la DB\nreturn [{\n  json: {\n    run_id: config.run_id,\n    demo_mode: demoMode,\n    telegram_token: telegramToken,\n    telegram_chat_id: chatId,\n    date_str: dateStr,\n    time_str: timeStr,\n    telegram_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`\n  }\n}];"
+      },
+      "id": "node-prepare-digest",
+      "name": "Prepare Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [7680, 460]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COUNT(*) AS total,\n  COUNT(*) FILTER (WHERE priority = 'P1') AS p1,\n  COUNT(*) FILTER (WHERE priority = 'P2') AS p2,\n  COUNT(*) FILTER (WHERE priority = 'P3') AS p3,\n  COUNT(*) FILTER (WHERE risk_level = 'HIGH') AS high_risk,\n  COUNT(*) FILTER (WHERE risk_level = 'MED') AS med_risk,\n  COUNT(*) FILTER (WHERE draft_id IS NOT NULL) AS drafts,\n  COUNT(*) FILTER (WHERE state = 'SENT') AS sent,\n  COUNT(*) FILTER (WHERE llm_fallback_used = TRUE) AS fallbacks\nFROM email_processing\nWHERE run_id = '{{ $json.run_id }}'"
+      },
+      "id": "node-fetch-digest-stats",
+      "name": "Postgres — Fetch Run Stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [7920, 460],
+      "credentials": {
+        "postgres": {
+          "name": "Postgres POC"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// SEND DIGEST — Envoyer le résumé quotidien Telegram\n// ============================================================\nconst digestConfig = $('Prepare Digest').item.json;\nconst stats = $json;\n\nconst demoTag = digestConfig.demo_mode ? '\\n🔵 _[MODE DEMO — aucune action réelle]_' : '';\n\nconst total = stats.total || 0;\nconst p1 = stats.p1 || 0;\nconst p2 = stats.p2 || 0;\nconst p3 = stats.p3 || 0;\nconst highRisk = stats.high_risk || 0;\nconst medRisk = stats.med_risk || 0;\nconst drafts = stats.drafts || 0;\nconst sent = stats.sent || 0;\nconst fallbacks = stats.fallbacks || 0;\n\n// Estimation temps gagné (5-15 min par email selon priorité)\nconst timeSaved = p1 * 12 + p2 * 8 + p3 * 3;\n\nlet text = `📊 *Rapport quotidien — ${digestConfig.date_str} ${digestConfig.time_str}*\\n\\n`;\ntext += `📬 *Emails traités: ${total}*\\n`;\nif (p1 > 0) text += `🔴 P1 (urgent): ${p1}\\n`;\nif (p2 > 0) text += `🟡 P2 (normal): ${p2}\\n`;\nif (p3 > 0) text += `🟢 P3 (faible): ${p3}\\n`;\n\nif (highRisk > 0 || medRisk > 0) {\n  text += `\\n⚠️ *Alertes risque:*\\n`;\n  if (highRisk > 0) text += `• ${highRisk} email(s) HIGH risk bloqué(s)\\n`;\n  if (medRisk > 0) text += `• ${medRisk} email(s) MED risk — vérification recommandée\\n`;\n}\n\ntext += `\\n📝 Brouillons créés: ${drafts}\\n`;\ntext += `✅ Envoyés: ${sent}\\n`;\nif (fallbacks > 0) text += `⚡ Fallbacks LLM: ${fallbacks}\\n`;\ntext += `\\n⏱️ *Temps estimé gagné: ~${timeSaved} min*`;\ntext += demoTag;\n\nif (total === 0) {\n  text = `📊 *Rapport — ${digestConfig.date_str} ${digestConfig.time_str}*\\n\\n✅ Aucun email non lu à traiter.${demoTag}`;\n}\n\nconst payload = {\n  chat_id: digestConfig.telegram_chat_id,\n  text: text,\n  parse_mode: 'Markdown'\n};\n\nreturn [{\n  json: {\n    telegram_url: digestConfig.telegram_url,\n    payload: payload\n  }\n}];"
+      },
+      "id": "node-build-digest-msg",
+      "name": "Build Digest Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8160, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.telegram_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-send-digest",
+      "name": "Send Telegram Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [8400, 460],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "content": "## WF_01 — Daily Ingest & Analyze\n\n**Flux principal:**\n1. Trigger (Cron 8h lun-ven + Manuel)\n2. Init config (demo mode, run_id, params)\n3. Init DB tables (idempotent)\n4. Gmail: récupérer emails non lus (24h)\n5. Pour chaque email:\n   - Get full message\n   - Normalize (headers, body, URLs, PJ)\n   - Check duplicate (Postgres)\n   - Security analysis (score 0-100, 11 vecteurs)\n   - VIP check\n   - IF not HIGH: LLM Triage (Claude) → JSON strict\n   - IF HIGH: escalade directe\n   - IF needs_reply + !block_send: LLM Draft\n   - Créer draft Gmail (ou simuler en DEMO)\n   - Persister en Postgres\n   - Alerte Telegram (P1 + HIGH)\n6. Digest Telegram quotidien\n\n**Credentials requis:**\n- Gmail POC (OAuth2)\n- Postgres POC\n- (Anthropic via env var ANTHROPIC_API_KEY)",
+        "height": 400,
+        "width": 340,
+        "color": 4
+      },
+      "id": "node-sticky-doc",
+      "name": "Documentation WF_01",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 580]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Merge Triggers", "type": "main", "index": 0}]]
+    },
+    "Schedule Trigger (8h lun-ven)": {
+      "main": [[{"node": "Merge Triggers", "type": "main", "index": 1}]]
+    },
+    "Merge Triggers": {
+      "main": [[{"node": "Init Run Config", "type": "main", "index": 0}]]
+    },
+    "Init Run Config": {
+      "main": [[{"node": "Init DB Tables", "type": "main", "index": 0}]]
+    },
+    "Init DB Tables": {
+      "main": [[{"node": "Gmail — Fetch Unread Messages", "type": "main", "index": 0}]]
+    },
+    "Gmail — Fetch Unread Messages": {
+      "main": [[{"node": "IF Has Messages", "type": "main", "index": 0}]]
+    },
+    "IF Has Messages": {
+      "main": [
+        [{"node": "Split In Batches (1 by 1)", "type": "main", "index": 0}],
+        [{"node": "No Messages — Log", "type": "main", "index": 0}]
+      ]
+    },
+    "Split In Batches (1 by 1)": {
+      "main": [
+        [{"node": "Gmail — Get Full Message", "type": "main", "index": 0}],
+        [{"node": "Prepare Digest", "type": "main", "index": 0}]
+      ]
+    },
+    "Gmail — Get Full Message": {
+      "main": [[{"node": "Normalize Email", "type": "main", "index": 0}]]
+    },
+    "Normalize Email": {
+      "main": [[{"node": "Postgres — Check Duplicate", "type": "main", "index": 0}]]
+    },
+    "Postgres — Check Duplicate": {
+      "main": [[{"node": "Check Dup Result", "type": "main", "index": 0}]]
+    },
+    "Check Dup Result": {
+      "main": [[{"node": "IF Duplicate", "type": "main", "index": 0}]]
+    },
+    "IF Duplicate": {
+      "main": [
+        [{"node": "Security Analysis (Anti-Phishing)", "type": "main", "index": 0}],
+        [{"node": "Skip — Already Processed", "type": "main", "index": 0}]
+      ]
+    },
+    "Security Analysis (Anti-Phishing)": {
+      "main": [[{"node": "VIP Check", "type": "main", "index": 0}]]
+    },
+    "VIP Check": {
+      "main": [[{"node": "IF Not HIGH Risk", "type": "main", "index": 0}]]
+    },
+    "IF Not HIGH Risk": {
+      "main": [
+        [{"node": "LLM Triage (Claude API)", "type": "main", "index": 0}],
+        [{"node": "HIGH Risk — Escalade (no draft)", "type": "main", "index": 0}]
+      ]
+    },
+    "LLM Triage (Claude API)": {
+      "main": [[{"node": "Parse & Validate Triage", "type": "main", "index": 0}]]
+    },
+    "Parse & Validate Triage": {
+      "main": [[{"node": "Merge Risk Paths", "type": "main", "index": 0}]]
+    },
+    "HIGH Risk — Escalade (no draft)": {
+      "main": [[{"node": "Merge Risk Paths", "type": "main", "index": 1}]]
+    },
+    "Merge Risk Paths": {
+      "main": [[{"node": "IF Needs Draft", "type": "main", "index": 0}]]
+    },
+    "IF Needs Draft": {
+      "main": [
+        [{"node": "LLM Draft Generation", "type": "main", "index": 0}],
+        [{"node": "Merge All Paths", "type": "main", "index": 1}]
+      ]
+    },
+    "LLM Draft Generation": {
+      "main": [[{"node": "Parse Draft Response", "type": "main", "index": 0}]]
+    },
+    "Parse Draft Response": {
+      "main": [[{"node": "IF Not Demo (Create Draft)", "type": "main", "index": 0}]]
+    },
+    "IF Not Demo (Create Draft)": {
+      "main": [
+        [{"node": "Gmail — Create Draft", "type": "main", "index": 0}],
+        [{"node": "[DEMO] Simulate Draft Creation", "type": "main", "index": 0}]
+      ]
+    },
+    "Gmail — Create Draft": {
+      "main": [[{"node": "Collect Draft ID", "type": "main", "index": 0}]]
+    },
+    "[DEMO] Simulate Draft Creation": {
+      "main": [[{"node": "Collect Draft ID", "type": "main", "index": 0}]]
+    },
+    "Collect Draft ID": {
+      "main": [[{"node": "Merge All Paths", "type": "main", "index": 0}]]
+    },
+    "Merge All Paths": {
+      "main": [[{"node": "Prepare for Persist", "type": "main", "index": 0}]]
+    },
+    "Prepare for Persist": {
+      "main": [[{"node": "Postgres — Persist Email", "type": "main", "index": 0}]]
+    },
+    "Postgres — Persist Email": {
+      "main": [[{"node": "Build Telegram Alert (P1/HIGH)", "type": "main", "index": 0}]]
+    },
+    "Build Telegram Alert (P1/HIGH)": {
+      "main": [[{"node": "IF Send Telegram Alert", "type": "main", "index": 0}]]
+    },
+    "IF Send Telegram Alert": {
+      "main": [
+        [{"node": "Send Telegram Alert", "type": "main", "index": 0}],
+        [{"node": "Continue Loop", "type": "main", "index": 0}]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [[{"node": "Continue Loop", "type": "main", "index": 0}]]
+    },
+    "Continue Loop": {
+      "main": [[{"node": "Split In Batches (1 by 1)", "type": "main", "index": 0}]]
+    },
+    "Prepare Digest": {
+      "main": [[{"node": "Postgres — Fetch Run Stats", "type": "main", "index": 0}]]
+    },
+    "Postgres — Fetch Run Stats": {
+      "main": [[{"node": "Build Digest Message", "type": "main", "index": 0}]]
+    },
+    "Build Digest Message": {
+      "main": [[{"node": "Send Telegram Digest", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "pinData": {}
+}
