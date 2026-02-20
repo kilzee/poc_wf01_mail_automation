@@ -10,7 +10,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -20,13 +23,30 @@
       "name": "Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 300]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-          "conditions": [{"id": "c1", "leftValue": "={{ $json.demo_mode }}", "rightValue": false, "operator": {"type": "boolean", "operation": "false"}}],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.demo_mode }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
           "combinator": "and"
         },
         "options": {}
@@ -35,7 +55,10 @@
       "name": "IF Production Mode",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [720, 300]
+      "position": [
+        720,
+        300
+      ]
     },
     {
       "parameters": {
@@ -45,7 +68,10 @@
       "name": "[DEMO] Simulate Gmail Actions",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 460]
+      "position": [
+        960,
+        460
+      ]
     },
     {
       "parameters": {
@@ -53,8 +79,22 @@
           "values": [
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "rr1", "leftValue": "={{ $json.action }}", "rightValue": "SEND_DRAFT", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rr1",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "SEND_DRAFT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -62,8 +102,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "rr2", "leftValue": "={{ $json.action }}", "rightValue": "MARK_SPAM", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rr2",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "MARK_SPAM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -71,8 +125,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "rr3", "leftValue": "={{ $json.action }}", "rightValue": "ARCHIVE", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rr3",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "ARCHIVE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -80,8 +148,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "rr4", "leftValue": "={{ $json.action }}", "rightValue": "MARK_READ", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rr4",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "MARK_READ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -97,20 +179,28 @@
       "name": "Action Switch",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [960, 260]
+      "position": [
+        960,
+        260
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts/={{ $json.draft_id }}/send",
         "authentication": "oAuth2",
-        "options": {"timeout": 15000}
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "node-wf07-send-draft",
       "name": "Gmail API — Send Draft",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1200, 140],
+      "position": [
+        1200,
+        140
+      ],
       "credentials": {
         "oAuth2Api": {
           "name": "Gmail POC"
@@ -123,13 +213,18 @@
         "resource": "message",
         "operation": "addLabels",
         "messageId": "={{ $json.gmail_message_id }}",
-        "labelIds": ["SPAM"]
+        "labelIds": [
+          "SPAM"
+        ]
       },
       "id": "node-wf07-mark-spam",
       "name": "Gmail — Mark Spam",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1200, 260],
+      "position": [
+        1200,
+        260
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -142,13 +237,18 @@
         "resource": "message",
         "operation": "removeLabels",
         "messageId": "={{ $json.gmail_message_id }}",
-        "labelIds": ["INBOX"]
+        "labelIds": [
+          "INBOX"
+        ]
       },
       "id": "node-wf07-archive",
       "name": "Gmail — Archive (Remove INBOX)",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1200, 380],
+      "position": [
+        1200,
+        380
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -161,13 +261,18 @@
         "resource": "message",
         "operation": "removeLabels",
         "messageId": "={{ $json.gmail_message_id }}",
-        "labelIds": ["UNREAD"]
+        "labelIds": [
+          "UNREAD"
+        ]
       },
       "id": "node-wf07-mark-read",
       "name": "Gmail — Mark Read",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1200, 500],
+      "position": [
+        1200,
+        500
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -186,7 +291,10 @@
       "name": "Gmail — Apply Custom Labels",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1200, 620],
+      "position": [
+        1200,
+        620
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -203,7 +311,10 @@
       "name": "Merge Action Results",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1440, 380]
+      "position": [
+        1440,
+        380
+      ]
     },
     {
       "parameters": {
@@ -213,7 +324,10 @@
       "name": "Collect & Log Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 380]
+      "position": [
+        1680,
+        380
+      ]
     },
     {
       "parameters": {
@@ -226,51 +340,168 @@
       "name": "Documentation WF_07",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [240, 500]
+      "position": [
+        240,
+        500
+      ]
     }
   ],
   "connections": {
     "Manual Trigger": {
-      "main": [[{"node": "Validate Input", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate Input": {
-      "main": [[{"node": "IF Production Mode", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Production Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Production Mode": {
       "main": [
-        [{"node": "Action Switch", "type": "main", "index": 0}],
-        [{"node": "[DEMO] Simulate Gmail Actions", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Action Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "[DEMO] Simulate Gmail Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Action Switch": {
       "main": [
-        [{"node": "Gmail API — Send Draft", "type": "main", "index": 0}],
-        [{"node": "Gmail — Mark Spam", "type": "main", "index": 0}],
-        [{"node": "Gmail — Archive (Remove INBOX)", "type": "main", "index": 0}],
-        [{"node": "Gmail — Mark Read", "type": "main", "index": 0}],
-        [{"node": "Gmail — Apply Custom Labels", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Gmail API — Send Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail — Mark Spam",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail — Archive (Remove INBOX)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail — Mark Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail — Apply Custom Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Gmail API — Send Draft": {
-      "main": [[{"node": "Merge Action Results", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Merge Action Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Gmail — Mark Spam": {
-      "main": [[{"node": "Merge Action Results", "type": "main", "index": 1}]]
+      "main": [
+        [
+          {
+            "node": "Merge Action Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "Gmail — Archive (Remove INBOX)": {
-      "main": [[{"node": "Merge Action Results", "type": "main", "index": 2}]]
+      "main": [
+        [
+          {
+            "node": "Merge Action Results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
     },
     "Gmail — Mark Read": {
-      "main": [[{"node": "Merge Action Results", "type": "main", "index": 3}]]
+      "main": [
+        [
+          {
+            "node": "Merge Action Results",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
     },
     "Gmail — Apply Custom Labels": {
-      "main": [[{"node": "Merge Action Results", "type": "main", "index": 4}]]
+      "main": [
+        [
+          {
+            "node": "Merge Action Results",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
     },
     "[DEMO] Simulate Gmail Actions": {
-      "main": [[{"node": "Collect & Log Result", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Collect & Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Merge Action Results": {
-      "main": [[{"node": "Collect & Log Result", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Collect & Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -279,5 +510,6 @@
     "saveManualExecutions": true,
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "pinData": {}
+  "pinData": {},
+  "versionId": "39640869-71d1-44ec-a0ab-f0181ff8ee91"
 }

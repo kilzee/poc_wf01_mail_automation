@@ -15,7 +15,10 @@
       "name": "Telegram Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "webhookId": "telegram-actions-poc"
     },
     {
@@ -26,7 +29,10 @@
       "name": "Parse Telegram Update",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 300]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -36,7 +42,10 @@
       "name": "Auth Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 300]
+      "position": [
+        720,
+        300
+      ]
     },
     {
       "parameters": {
@@ -65,7 +74,10 @@
       "name": "IF Authorized",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [960, 300]
+      "position": [
+        960,
+        300
+      ]
     },
     {
       "parameters": {
@@ -75,7 +87,10 @@
       "name": "Unauthorized — Silent Reject",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1200, 460]
+      "position": [
+        1200,
+        460
+      ]
     },
     {
       "parameters": {
@@ -89,7 +104,10 @@
       "name": "Respond 200 (unauthorized)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1440, 460]
+      "position": [
+        1440,
+        460
+      ]
     },
     {
       "parameters": {
@@ -97,8 +115,22 @@
           "values": [
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r1", "leftValue": "={{ $json.action }}", "rightValue": "APPROVE_SEND", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "APPROVE_SEND",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -106,8 +138,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r2", "leftValue": "={{ $json.action }}", "rightValue": "EDIT_DRAFT", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r2",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "EDIT_DRAFT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -115,8 +161,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r3", "leftValue": "={{ $json.action }}", "rightValue": "SAVE_DRAFT_ONLY", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r3",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "SAVE_DRAFT_ONLY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -124,8 +184,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r4", "leftValue": "={{ $json.action }}", "rightValue": "APPLY_LABEL", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r4",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "APPLY_LABEL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -133,8 +207,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r5", "leftValue": "={{ $json.action }}", "rightValue": "ARCHIVE", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r5",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "ARCHIVE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -142,8 +230,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r6", "leftValue": "={{ $json.action }}", "rightValue": "MARK_SPAM", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r6",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "MARK_SPAM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -151,8 +253,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r7", "leftValue": "={{ $json.action }}", "rightValue": "ESCALATE", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r7",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "ESCALATE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -160,8 +276,22 @@
             },
             {
               "conditions": {
-                "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-                "conditions": [{"id": "r8", "leftValue": "={{ $json.action }}", "rightValue": "IGNORE", "operator": {"type": "string", "operation": "equals"}}],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "r8",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "IGNORE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -177,15 +307,30 @@
       "name": "Action Router",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [1200, 280]
+      "position": [
+        1200,
+        280
+      ]
     },
     {
       "parameters": {
         "operation": "select",
-        "schema": {"value": "public", "mode": "list"},
-        "table": {"value": "email_processing", "mode": "list"},
+        "schema": {
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "value": "email_processing",
+          "mode": "list"
+        },
         "where": {
-          "values": [{"column": "gmail_message_id", "condition": "equal", "value": "={{ $json.gmail_message_id }}"}]
+          "values": [
+            {
+              "column": "gmail_message_id",
+              "condition": "equal",
+              "value": "={{ $json.gmail_message_id }}"
+            }
+          ]
         },
         "limit": 1,
         "options": {}
@@ -194,7 +339,10 @@
       "name": "Postgres — Fetch Email Record",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [1440, 280],
+      "position": [
+        1440,
+        280
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -210,13 +358,30 @@
       "name": "Action Executor & Safety Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 280]
+      "position": [
+        1680,
+        280
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
-          "conditions": [{"id": "cond-blocked", "leftValue": "={{ $json.blocked }}", "rightValue": false, "operator": {"type": "boolean", "operation": "false"}}],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-blocked",
+              "leftValue": "={{ $json.blocked }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
           "combinator": "and"
         },
         "options": {}
@@ -225,7 +390,10 @@
       "name": "IF Action Allowed",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1920, 280]
+      "position": [
+        1920,
+        280
+      ]
     },
     {
       "parameters": {
@@ -235,15 +403,38 @@
       "name": "Execute Gmail Action",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2160, 200]
+      "position": [
+        2160,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": {"caseSensitive": false, "leftValue": "", "typeValidation": "strict"},
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
-            {"id": "c1", "leftValue": "={{ $json.demo_mode }}", "rightValue": false, "operator": {"type": "boolean", "operation": "false"}},
-            {"id": "c2", "leftValue": "={{ $json.action }}", "rightValue": "APPROVE_SEND", "operator": {"type": "string", "operation": "equals"}}
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.demo_mode }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "APPROVE_SEND",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -253,7 +444,10 @@
       "name": "IF Real Send Draft",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2400, 200]
+      "position": [
+        2400,
+        200
+      ]
     },
     {
       "parameters": {
@@ -268,7 +462,10 @@
       "name": "Gmail API — Send Draft",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2640, 120],
+      "position": [
+        2640,
+        120
+      ],
       "credentials": {
         "oAuth2Api": {
           "name": "Gmail POC"
@@ -287,7 +484,10 @@
       "name": "Gmail — Apply Labels",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [2640, 260],
+      "position": [
+        2640,
+        260
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -304,28 +504,55 @@
       "name": "Merge Gmail Results",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [2880, 200]
+      "position": [
+        2880,
+        200
+      ]
     },
     {
       "parameters": {
         "operation": "update",
-        "schema": {"value": "public", "mode": "list"},
-        "table": {"value": "email_processing", "mode": "list"},
+        "schema": {
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "value": "email_processing",
+          "mode": "list"
+        },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "string": [
-              {"name": "state", "value": "={{ $json.update_state }}"},
-              {"name": "operator_action", "value": "={{ $json.action }}"},
-              {"name": "operator_action_at", "value": "={{ new Date().toISOString() }}"}
+              {
+                "name": "state",
+                "value": "={{ $json.update_state }}"
+              },
+              {
+                "name": "operator_action",
+                "value": "={{ $json.action }}"
+              },
+              {
+                "name": "operator_action_at",
+                "value": "={{ new Date().toISOString() }}"
+              }
             ],
             "number": [
-              {"name": "operator_telegram_id", "value": "={{ $json.user_id }}"}
+              {
+                "name": "operator_telegram_id",
+                "value": "={{ $json.user_id }}"
+              }
             ]
           }
         },
         "where": {
-          "values": [{"column": "gmail_message_id", "condition": "equal", "value": "={{ $json.gmail_message_id }}"}]
+          "values": [
+            {
+              "column": "gmail_message_id",
+              "condition": "equal",
+              "value": "={{ $json.gmail_message_id }}"
+            }
+          ]
         },
         "options": {}
       },
@@ -333,7 +560,10 @@
       "name": "Postgres — Update State",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [3120, 200],
+      "position": [
+        3120,
+        200
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -344,20 +574,44 @@
     {
       "parameters": {
         "operation": "insert",
-        "schema": {"value": "public", "mode": "list"},
-        "table": {"value": "audit_log", "mode": "list"},
+        "schema": {
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "value": "audit_log",
+          "mode": "list"
+        },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "string": [
-              {"name": "gmail_message_id", "value": "={{ $json.gmail_message_id }}"},
-              {"name": "thread_id", "value": "={{ $json.thread_id }}"},
-              {"name": "action", "value": "={{ $json.action }}"},
-              {"name": "actor", "value": "={{ $json.operator }}"},
-              {"name": "result", "value": "={{ $json.action_result }}"}
+              {
+                "name": "gmail_message_id",
+                "value": "={{ $json.gmail_message_id }}"
+              },
+              {
+                "name": "thread_id",
+                "value": "={{ $json.thread_id }}"
+              },
+              {
+                "name": "action",
+                "value": "={{ $json.action }}"
+              },
+              {
+                "name": "actor",
+                "value": "={{ $json.operator }}"
+              },
+              {
+                "name": "result",
+                "value": "={{ $json.action_result }}"
+              }
             ],
             "boolean": [
-              {"name": "is_demo", "value": "={{ $json.demo_mode }}"}
+              {
+                "name": "is_demo",
+                "value": "={{ $json.demo_mode }}"
+              }
             ]
           }
         },
@@ -367,7 +621,10 @@
       "name": "Postgres — Audit Log",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [3360, 200],
+      "position": [
+        3360,
+        200
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -382,13 +639,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"chat_id\": {{ $('Execute Gmail Action').item.json.chat_id }},\n  \"text\": \"{{ $('Execute Gmail Action').item.json.telegram_confirm_text }}\",\n  \"parse_mode\": \"Markdown\"\n}",
-        "options": {"timeout": 10000}
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node-send-confirm",
       "name": "Send Telegram Confirmation",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3600, 200],
+      "position": [
+        3600,
+        200
+      ],
       "continueOnFail": true
     },
     {
@@ -399,7 +661,10 @@
       "name": "Blocked Action Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2160, 420]
+      "position": [
+        2160,
+        420
+      ]
     },
     {
       "parameters": {
@@ -408,13 +673,18 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.payload) }}",
-        "options": {"timeout": 10000}
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node-send-blocked-msg",
       "name": "Send Blocked Message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2400, 420],
+      "position": [
+        2400,
+        420
+      ],
       "continueOnFail": true
     },
     {
@@ -425,7 +695,10 @@
       "name": "Handle Text Commands",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1440, 460]
+      "position": [
+        1440,
+        460
+      ]
     },
     {
       "parameters": {
@@ -434,26 +707,36 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.payload) }}",
-        "options": {"timeout": 10000}
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "node-send-command-response",
       "name": "Send Command Response",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1680, 460],
+      "position": [
+        1680,
+        460
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
         "respondWith": "text",
         "responseBody": "OK",
-        "options": {"responseCode": 200}
+        "options": {
+          "responseCode": 200
+        }
       },
       "id": "node-respond-ok",
       "name": "Respond 200 OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [3840, 300]
+      "position": [
+        3840,
+        300
+      ]
     },
     {
       "parameters": {
@@ -466,91 +749,320 @@
       "name": "Documentation WF_06",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [240, 560]
+      "position": [
+        240,
+        560
+      ]
     }
   ],
   "connections": {
     "Telegram Webhook": {
-      "main": [[{"node": "Parse Telegram Update", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Parse Telegram Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Telegram Update": {
-      "main": [[{"node": "Auth Check", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Auth Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Auth Check": {
-      "main": [[{"node": "IF Authorized", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Authorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Authorized": {
       "main": [
-        [{"node": "Action Router", "type": "main", "index": 0}],
-        [{"node": "Unauthorized — Silent Reject", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Action Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unauthorized — Silent Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Unauthorized — Silent Reject": {
-      "main": [[{"node": "Respond 200 (unauthorized)", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Respond 200 (unauthorized)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Action Router": {
       "main": [
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Postgres — Fetch Email Record", "type": "main", "index": 0}],
-        [{"node": "Handle Text Commands", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres — Fetch Email Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Text Commands",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Postgres — Fetch Email Record": {
-      "main": [[{"node": "Action Executor & Safety Check", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Action Executor & Safety Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Action Executor & Safety Check": {
-      "main": [[{"node": "IF Action Allowed", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Action Allowed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Action Allowed": {
       "main": [
-        [{"node": "Execute Gmail Action", "type": "main", "index": 0}],
-        [{"node": "Blocked Action Response", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Execute Gmail Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Blocked Action Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Execute Gmail Action": {
-      "main": [[{"node": "IF Real Send Draft", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Real Send Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Real Send Draft": {
       "main": [
-        [{"node": "Gmail API — Send Draft", "type": "main", "index": 0}],
-        [{"node": "Gmail — Apply Labels", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Gmail API — Send Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail — Apply Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Gmail API — Send Draft": {
-      "main": [[{"node": "Merge Gmail Results", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Merge Gmail Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Gmail — Apply Labels": {
-      "main": [[{"node": "Merge Gmail Results", "type": "main", "index": 1}]]
+      "main": [
+        [
+          {
+            "node": "Merge Gmail Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "Merge Gmail Results": {
-      "main": [[{"node": "Postgres — Update State", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Postgres — Update State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Postgres — Update State": {
-      "main": [[{"node": "Postgres — Audit Log", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Postgres — Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Postgres — Audit Log": {
-      "main": [[{"node": "Send Telegram Confirmation", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Send Telegram Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Telegram Confirmation": {
-      "main": [[{"node": "Respond 200 OK", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Blocked Action Response": {
-      "main": [[{"node": "Send Blocked Message", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Send Blocked Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Blocked Message": {
-      "main": [[{"node": "Respond 200 OK", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Handle Text Commands": {
-      "main": [[{"node": "Send Command Response", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Send Command Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Command Response": {
-      "main": [[{"node": "Respond 200 OK", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -559,5 +1071,6 @@
     "saveManualExecutions": true,
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "pinData": {}
+  "pinData": {},
+  "versionId": "7eedd319-16f8-43ff-9676-0acb9f7a6bd5"
 }

@@ -10,7 +10,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "notes": "Déclencher manuellement pour tests"
     },
     {
@@ -28,7 +31,10 @@
       "name": "Schedule Trigger (8h lun-ven)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [240, 460]
+      "position": [
+        240,
+        460
+      ]
     },
     {
       "parameters": {
@@ -39,7 +45,10 @@
       "name": "Merge Triggers",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [480, 380]
+      "position": [
+        480,
+        380
+      ]
     },
     {
       "parameters": {
@@ -49,7 +58,10 @@
       "name": "Init Run Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [720, 380]
+      "position": [
+        720,
+        380
+      ]
     },
     {
       "parameters": {
@@ -60,7 +72,10 @@
       "name": "Init DB Tables",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [960, 380],
+      "position": [
+        960,
+        380
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -85,7 +100,10 @@
       "name": "Gmail — Fetch Unread Messages",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1200, 380],
+      "position": [
+        1200,
+        380
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -119,7 +137,10 @@
       "name": "IF Has Messages",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1440, 380]
+      "position": [
+        1440,
+        380
+      ]
     },
     {
       "parameters": {
@@ -129,7 +150,10 @@
       "name": "No Messages — Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, 500]
+      "position": [
+        1680,
+        500
+      ]
     },
     {
       "parameters": {
@@ -140,7 +164,10 @@
       "name": "Split In Batches (1 by 1)",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [1680, 280]
+      "position": [
+        1680,
+        280
+      ]
     },
     {
       "parameters": {
@@ -155,7 +182,10 @@
       "name": "Gmail — Get Full Message",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1920, 280],
+      "position": [
+        1920,
+        280
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -170,7 +200,10 @@
       "name": "Normalize Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2160, 280]
+      "position": [
+        2160,
+        280
+      ]
     },
     {
       "parameters": {
@@ -199,7 +232,10 @@
       "name": "Postgres — Check Duplicate",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [2400, 280],
+      "position": [
+        2400,
+        280
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -215,7 +251,10 @@
       "name": "Check Dup Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2640, 280]
+      "position": [
+        2640,
+        280
+      ]
     },
     {
       "parameters": {
@@ -244,7 +283,10 @@
       "name": "IF Duplicate",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2880, 280]
+      "position": [
+        2880,
+        280
+      ]
     },
     {
       "parameters": {
@@ -254,7 +296,10 @@
       "name": "Skip — Already Processed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3120, 400]
+      "position": [
+        3120,
+        400
+      ]
     },
     {
       "parameters": {
@@ -264,7 +309,10 @@
       "name": "Security Analysis (Anti-Phishing)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3120, 200]
+      "position": [
+        3120,
+        200
+      ]
     },
     {
       "parameters": {
@@ -274,7 +322,10 @@
       "name": "VIP Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3360, 200]
+      "position": [
+        3360,
+        200
+      ]
     },
     {
       "parameters": {
@@ -303,7 +354,10 @@
       "name": "IF Not HIGH Risk",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [3600, 200]
+      "position": [
+        3600,
+        200
+      ]
     },
     {
       "parameters": {
@@ -313,7 +367,10 @@
       "name": "HIGH Risk — Escalade (no draft)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3840, 360]
+      "position": [
+        3840,
+        360
+      ]
     },
     {
       "parameters": {
@@ -357,7 +414,10 @@
       "name": "LLM Triage (Claude API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3840, 120],
+      "position": [
+        3840,
+        120
+      ],
       "continueOnFail": true
     },
     {
@@ -368,7 +428,10 @@
       "name": "Parse & Validate Triage",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4080, 120]
+      "position": [
+        4080,
+        120
+      ]
     },
     {
       "parameters": {
@@ -379,7 +442,10 @@
       "name": "Merge Risk Paths",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [4320, 220]
+      "position": [
+        4320,
+        220
+      ]
     },
     {
       "parameters": {
@@ -426,7 +492,10 @@
       "name": "IF Needs Draft",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [4560, 220]
+      "position": [
+        4560,
+        220
+      ]
     },
     {
       "parameters": {
@@ -465,7 +534,10 @@
       "name": "LLM Draft Generation",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [4800, 140],
+      "position": [
+        4800,
+        140
+      ],
       "continueOnFail": true
     },
     {
@@ -476,7 +548,10 @@
       "name": "Parse Draft Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5040, 140]
+      "position": [
+        5040,
+        140
+      ]
     },
     {
       "parameters": {
@@ -505,7 +580,10 @@
       "name": "IF Not Demo (Create Draft)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [5280, 140]
+      "position": [
+        5280,
+        140
+      ]
     },
     {
       "parameters": {
@@ -522,7 +600,10 @@
       "name": "Gmail — Create Draft",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [5520, 60],
+      "position": [
+        5520,
+        60
+      ],
       "credentials": {
         "gmailOAuth2": {
           "name": "Gmail POC"
@@ -538,7 +619,10 @@
       "name": "[DEMO] Simulate Draft Creation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5520, 220]
+      "position": [
+        5520,
+        220
+      ]
     },
     {
       "parameters": {
@@ -548,7 +632,10 @@
       "name": "Collect Draft ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [5760, 140]
+      "position": [
+        5760,
+        140
+      ]
     },
     {
       "parameters": {
@@ -559,7 +646,10 @@
       "name": "Merge All Paths",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [6000, 280]
+      "position": [
+        6000,
+        280
+      ]
     },
     {
       "parameters": {
@@ -569,7 +659,10 @@
       "name": "Prepare for Persist",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6240, 280]
+      "position": [
+        6240,
+        280
+      ]
     },
     {
       "parameters": {
@@ -586,37 +679,118 @@
           "mappingMode": "defineBelow",
           "value": {
             "string": [
-              { "name": "gmail_message_id", "value": "={{ $json.gmail_message_id }}" },
-              { "name": "thread_id", "value": "={{ $json.thread_id }}" },
-              { "name": "message_id_header", "value": "={{ $json.message_id_header }}" },
-              { "name": "from_email", "value": "={{ $json.from_email }}" },
-              { "name": "from_name", "value": "={{ $json.from_name }}" },
-              { "name": "reply_to", "value": "={{ $json.reply_to }}" },
-              { "name": "subject", "value": "={{ $json.subject }}" },
-              { "name": "received_at", "value": "={{ $json.received_at }}" },
-              { "name": "snippet", "value": "={{ $json.snippet }}" },
-              { "name": "state", "value": "={{ $json._final_state }}" },
-              { "name": "risk_level", "value": "={{ $json.risk_level }}" },
-              { "name": "risk_reasons", "value": "={{ JSON.stringify($json.risk_reasons) }}" },
-              { "name": "priority", "value": "={{ $json.priority }}" },
-              { "name": "category", "value": "={{ $json.category }}" },
-              { "name": "llm_summary", "value": "={{ $json.llm_summary }}" },
-              { "name": "recommended_action", "value": "={{ $json.recommended_action }}" },
-              { "name": "draft_id", "value": "={{ $json.draft_id }}" },
-              { "name": "draft_subject", "value": "={{ $json.draft_subject }}" },
-              { "name": "run_id", "value": "={{ $json._run_id }}" }
+              {
+                "name": "gmail_message_id",
+                "value": "={{ $json.gmail_message_id }}"
+              },
+              {
+                "name": "thread_id",
+                "value": "={{ $json.thread_id }}"
+              },
+              {
+                "name": "message_id_header",
+                "value": "={{ $json.message_id_header }}"
+              },
+              {
+                "name": "from_email",
+                "value": "={{ $json.from_email }}"
+              },
+              {
+                "name": "from_name",
+                "value": "={{ $json.from_name }}"
+              },
+              {
+                "name": "reply_to",
+                "value": "={{ $json.reply_to }}"
+              },
+              {
+                "name": "subject",
+                "value": "={{ $json.subject }}"
+              },
+              {
+                "name": "received_at",
+                "value": "={{ $json.received_at }}"
+              },
+              {
+                "name": "snippet",
+                "value": "={{ $json.snippet }}"
+              },
+              {
+                "name": "state",
+                "value": "={{ $json._final_state }}"
+              },
+              {
+                "name": "risk_level",
+                "value": "={{ $json.risk_level }}"
+              },
+              {
+                "name": "risk_reasons",
+                "value": "={{ JSON.stringify($json.risk_reasons) }}"
+              },
+              {
+                "name": "priority",
+                "value": "={{ $json.priority }}"
+              },
+              {
+                "name": "category",
+                "value": "={{ $json.category }}"
+              },
+              {
+                "name": "llm_summary",
+                "value": "={{ $json.llm_summary }}"
+              },
+              {
+                "name": "recommended_action",
+                "value": "={{ $json.recommended_action }}"
+              },
+              {
+                "name": "draft_id",
+                "value": "={{ $json.draft_id }}"
+              },
+              {
+                "name": "draft_subject",
+                "value": "={{ $json.draft_subject }}"
+              },
+              {
+                "name": "run_id",
+                "value": "={{ $json._run_id }}"
+              }
             ],
             "number": [
-              { "name": "risk_score", "value": "={{ $json.risk_score }}" },
-              { "name": "llm_confidence", "value": "={{ $json.llm_confidence }}" }
+              {
+                "name": "risk_score",
+                "value": "={{ $json.risk_score }}"
+              },
+              {
+                "name": "llm_confidence",
+                "value": "={{ $json.llm_confidence }}"
+              }
             ],
             "boolean": [
-              { "name": "needs_reply", "value": "={{ $json.needs_reply }}" },
-              { "name": "block_send", "value": "={{ $json.block_send }}" },
-              { "name": "is_vip", "value": "={{ $json.is_vip }}" },
-              { "name": "is_internal", "value": "={{ $json.is_internal }}" },
-              { "name": "is_demo", "value": "={{ $json._demo_mode }}" },
-              { "name": "llm_fallback_used", "value": "={{ $json.llm_fallback_used }}" }
+              {
+                "name": "needs_reply",
+                "value": "={{ $json.needs_reply }}"
+              },
+              {
+                "name": "block_send",
+                "value": "={{ $json.block_send }}"
+              },
+              {
+                "name": "is_vip",
+                "value": "={{ $json.is_vip }}"
+              },
+              {
+                "name": "is_internal",
+                "value": "={{ $json.is_internal }}"
+              },
+              {
+                "name": "is_demo",
+                "value": "={{ $json._demo_mode }}"
+              },
+              {
+                "name": "llm_fallback_used",
+                "value": "={{ $json.llm_fallback_used }}"
+              }
             ]
           }
         },
@@ -630,7 +804,10 @@
       "name": "Postgres — Persist Email",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [6480, 280],
+      "position": [
+        6480,
+        280
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -646,7 +823,10 @@
       "name": "Build Telegram Alert (P1/HIGH)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [6720, 280]
+      "position": [
+        6720,
+        280
+      ]
     },
     {
       "parameters": {
@@ -675,7 +855,10 @@
       "name": "IF Send Telegram Alert",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [6960, 280]
+      "position": [
+        6960,
+        280
+      ]
     },
     {
       "parameters": {
@@ -692,7 +875,10 @@
       "name": "Send Telegram Alert",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [7200, 200],
+      "position": [
+        7200,
+        200
+      ],
       "continueOnFail": true
     },
     {
@@ -703,7 +889,10 @@
       "name": "Continue Loop",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [7440, 280]
+      "position": [
+        7440,
+        280
+      ]
     },
     {
       "parameters": {
@@ -713,7 +902,10 @@
       "name": "Prepare Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [7680, 460]
+      "position": [
+        7680,
+        460
+      ]
     },
     {
       "parameters": {
@@ -724,7 +916,10 @@
       "name": "Postgres — Fetch Run Stats",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
-      "position": [7920, 460],
+      "position": [
+        7920,
+        460
+      ],
       "credentials": {
         "postgres": {
           "name": "Postgres POC"
@@ -740,7 +935,10 @@
       "name": "Build Digest Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [8160, 460]
+      "position": [
+        8160,
+        460
+      ]
     },
     {
       "parameters": {
@@ -757,7 +955,10 @@
       "name": "Send Telegram Digest",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [8400, 460],
+      "position": [
+        8400,
+        460
+      ],
       "continueOnFail": true
     },
     {
@@ -771,141 +972,468 @@
       "name": "Documentation WF_01",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [240, 580]
+      "position": [
+        240,
+        580
+      ]
     }
   ],
   "connections": {
     "Manual Trigger": {
-      "main": [[{"node": "Merge Triggers", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Schedule Trigger (8h lun-ven)": {
-      "main": [[{"node": "Merge Triggers", "type": "main", "index": 1}]]
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "Merge Triggers": {
-      "main": [[{"node": "Init Run Config", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Init Run Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Init Run Config": {
-      "main": [[{"node": "Init DB Tables", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Init DB Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Init DB Tables": {
-      "main": [[{"node": "Gmail — Fetch Unread Messages", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Gmail — Fetch Unread Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Gmail — Fetch Unread Messages": {
-      "main": [[{"node": "IF Has Messages", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Has Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Has Messages": {
       "main": [
-        [{"node": "Split In Batches (1 by 1)", "type": "main", "index": 0}],
-        [{"node": "No Messages — Log", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Split In Batches (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Messages — Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Split In Batches (1 by 1)": {
       "main": [
-        [{"node": "Gmail — Get Full Message", "type": "main", "index": 0}],
-        [{"node": "Prepare Digest", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Gmail — Get Full Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Gmail — Get Full Message": {
-      "main": [[{"node": "Normalize Email", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Normalize Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Normalize Email": {
-      "main": [[{"node": "Postgres — Check Duplicate", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Postgres — Check Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Postgres — Check Duplicate": {
-      "main": [[{"node": "Check Dup Result", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Check Dup Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Check Dup Result": {
-      "main": [[{"node": "IF Duplicate", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Duplicate": {
       "main": [
-        [{"node": "Security Analysis (Anti-Phishing)", "type": "main", "index": 0}],
-        [{"node": "Skip — Already Processed", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Security Analysis (Anti-Phishing)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip — Already Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Security Analysis (Anti-Phishing)": {
-      "main": [[{"node": "VIP Check", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "VIP Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "VIP Check": {
-      "main": [[{"node": "IF Not HIGH Risk", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Not HIGH Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Not HIGH Risk": {
       "main": [
-        [{"node": "LLM Triage (Claude API)", "type": "main", "index": 0}],
-        [{"node": "HIGH Risk — Escalade (no draft)", "type": "main", "index": 0}]
+        [
+          {
+            "node": "LLM Triage (Claude API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HIGH Risk — Escalade (no draft)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "LLM Triage (Claude API)": {
-      "main": [[{"node": "Parse & Validate Triage", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Parse & Validate Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse & Validate Triage": {
-      "main": [[{"node": "Merge Risk Paths", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Merge Risk Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HIGH Risk — Escalade (no draft)": {
-      "main": [[{"node": "Merge Risk Paths", "type": "main", "index": 1}]]
+      "main": [
+        [
+          {
+            "node": "Merge Risk Paths",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "Merge Risk Paths": {
-      "main": [[{"node": "IF Needs Draft", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Needs Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Needs Draft": {
       "main": [
-        [{"node": "LLM Draft Generation", "type": "main", "index": 0}],
-        [{"node": "Merge All Paths", "type": "main", "index": 1}]
+        [
+          {
+            "node": "LLM Draft Generation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Paths",
+            "type": "main",
+            "index": 1
+          }
+        ]
       ]
     },
     "LLM Draft Generation": {
-      "main": [[{"node": "Parse Draft Response", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Parse Draft Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Draft Response": {
-      "main": [[{"node": "IF Not Demo (Create Draft)", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Not Demo (Create Draft)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Not Demo (Create Draft)": {
       "main": [
-        [{"node": "Gmail — Create Draft", "type": "main", "index": 0}],
-        [{"node": "[DEMO] Simulate Draft Creation", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Gmail — Create Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "[DEMO] Simulate Draft Creation",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Gmail — Create Draft": {
-      "main": [[{"node": "Collect Draft ID", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Collect Draft ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "[DEMO] Simulate Draft Creation": {
-      "main": [[{"node": "Collect Draft ID", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Collect Draft ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Collect Draft ID": {
-      "main": [[{"node": "Merge All Paths", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Merge All Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Merge All Paths": {
-      "main": [[{"node": "Prepare for Persist", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Prepare for Persist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare for Persist": {
-      "main": [[{"node": "Postgres — Persist Email", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Postgres — Persist Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Postgres — Persist Email": {
-      "main": [[{"node": "Build Telegram Alert (P1/HIGH)", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Build Telegram Alert (P1/HIGH)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Telegram Alert (P1/HIGH)": {
-      "main": [[{"node": "IF Send Telegram Alert", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "IF Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF Send Telegram Alert": {
       "main": [
-        [{"node": "Send Telegram Alert", "type": "main", "index": 0}],
-        [{"node": "Continue Loop", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Continue Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send Telegram Alert": {
-      "main": [[{"node": "Continue Loop", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Continue Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Continue Loop": {
-      "main": [[{"node": "Split In Batches (1 by 1)", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Split In Batches (1 by 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Digest": {
-      "main": [[{"node": "Postgres — Fetch Run Stats", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Postgres — Fetch Run Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Postgres — Fetch Run Stats": {
-      "main": [[{"node": "Build Digest Message", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Build Digest Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Digest Message": {
-      "main": [[{"node": "Send Telegram Digest", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Send Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -915,5 +1443,6 @@
     "callerPolicy": "workflowsFromSameOwner",
     "errorWorkflow": ""
   },
-  "pinData": {}
+  "pinData": {},
+  "versionId": "dfc900c5-838a-4d73-8042-25774144d273"
 }
