@@ -53,7 +53,7 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -118,7 +118,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -141,7 +141,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -164,7 +164,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -187,7 +187,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -210,7 +210,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -233,7 +233,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -256,7 +256,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -279,7 +279,7 @@
                 "options": {
                   "caseSensitive": false,
                   "leftValue": "",
-                  "typeValidation": "strict"
+                  "typeValidation": "loose"
                 },
                 "conditions": [
                   {
@@ -352,7 +352,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// EXECUTE ACTION — Dispatcher vers WF_07 ou traitement local\n// ============================================================\nconst actionData = $('Action Router').item.json;\nconst emailRecord = $json;\nconst action = actionData.action;\nconst demoMode = actionData.demo_mode;\nconst telegramToken = actionData.telegram_token;\nconst chatId = actionData.chat_id;\nconst userId = actionData.user_id;\nconst gmailMsgId = actionData.gmail_message_id;\n\n// Vérifications de sécurité\nconst checks = {\n  APPROVE_SEND: () => {\n    if (emailRecord.block_send) return { blocked: true, reason: 'block_send=true (risque élevé)' };\n    if (!emailRecord.draft_id) return { blocked: true, reason: 'Aucun draft disponible' };\n    if (emailRecord.risk_level === 'HIGH') return { blocked: true, reason: 'Email HIGH risk — envoi impossible' };\n    return { blocked: false };\n  },\n  DEFAULT: () => ({ blocked: false })\n};\n\nconst check = (checks[action] || checks.DEFAULT)();\n\nif (check.blocked) {\n  return [{\n    json: {\n      action: action,\n      gmail_message_id: gmailMsgId,\n      blocked: true,\n      block_reason: check.reason,\n      demo_mode: demoMode,\n      telegram_token: telegramToken,\n      chat_id: chatId,\n      user_id: userId,\n      email_record: emailRecord\n    }\n  }];\n}\n\n// Préparer les données pour WF_07\nreturn [{\n  json: {\n    action: action,\n    gmail_message_id: gmailMsgId,\n    thread_id: emailRecord.thread_id,\n    draft_id: emailRecord.draft_id,\n    draft_subject: emailRecord.draft_subject,\n    from_email: emailRecord.from_email,\n    subject: emailRecord.subject,\n    risk_level: emailRecord.risk_level,\n    block_send: emailRecord.block_send || false,\n    blocked: false,\n    demo_mode: demoMode,\n    telegram_token: telegramToken,\n    chat_id: chatId,\n    user_id: userId,\n    operator: `operator:${userId}`,\n    email_record: emailRecord\n  }\n}];"
+        "jsCode": "// ============================================================\n// EXECUTE ACTION — Dispatcher vers WF_07 ou traitement local\n// ============================================================\nconst actionData = $('Action Router').first().json;\nconst emailRecord = $json;\nconst action = actionData.action;\nconst demoMode = actionData.demo_mode;\nconst telegramToken = actionData.telegram_token;\nconst chatId = actionData.chat_id;\nconst userId = actionData.user_id;\nconst gmailMsgId = actionData.gmail_message_id;\n\n// Vérifications de sécurité\nconst checks = {\n  APPROVE_SEND: () => {\n    if (emailRecord.block_send) return { blocked: true, reason: 'block_send=true (risque élevé)' };\n    if (!emailRecord.draft_id) return { blocked: true, reason: 'Aucun draft disponible' };\n    if (emailRecord.risk_level === 'HIGH') return { blocked: true, reason: 'Email HIGH risk — envoi impossible' };\n    return { blocked: false };\n  },\n  DEFAULT: () => ({ blocked: false })\n};\n\nconst check = (checks[action] || checks.DEFAULT)();\n\nif (check.blocked) {\n  return [{\n    json: {\n      action: action,\n      gmail_message_id: gmailMsgId,\n      blocked: true,\n      block_reason: check.reason,\n      demo_mode: demoMode,\n      telegram_token: telegramToken,\n      chat_id: chatId,\n      user_id: userId,\n      email_record: emailRecord\n    }\n  }];\n}\n\n// Préparer les données pour WF_07\nreturn [{\n  json: {\n    action: action,\n    gmail_message_id: gmailMsgId,\n    thread_id: emailRecord.thread_id,\n    draft_id: emailRecord.draft_id,\n    draft_subject: emailRecord.draft_subject,\n    from_email: emailRecord.from_email,\n    subject: emailRecord.subject,\n    risk_level: emailRecord.risk_level,\n    block_send: emailRecord.block_send || false,\n    blocked: false,\n    demo_mode: demoMode,\n    telegram_token: telegramToken,\n    chat_id: chatId,\n    user_id: userId,\n    operator: `operator:${userId}`,\n    email_record: emailRecord\n  }\n}];"
       },
       "id": "node-action-executor",
       "name": "Action Executor & Safety Check",
@@ -369,7 +369,7 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
@@ -438,7 +438,11 @@
           ],
           "combinator": "and"
         },
-        "options": {}
+        "options": {
+          "caseSensitive": false,
+          "leftValue": "",
+          "typeValidation": "loose"
+        }
       },
       "id": "node-if-real-send",
       "name": "IF Real Send Draft",
@@ -511,49 +515,8 @@
     },
     {
       "parameters": {
-        "operation": "update",
-        "schema": {
-          "value": "public",
-          "mode": "list"
-        },
-        "table": {
-          "value": "email_processing",
-          "mode": "list"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "string": [
-              {
-                "name": "state",
-                "value": "={{ $json.update_state }}"
-              },
-              {
-                "name": "operator_action",
-                "value": "={{ $json.action }}"
-              },
-              {
-                "name": "operator_action_at",
-                "value": "={{ new Date().toISOString() }}"
-              }
-            ],
-            "number": [
-              {
-                "name": "operator_telegram_id",
-                "value": "={{ $json.user_id }}"
-              }
-            ]
-          }
-        },
-        "where": {
-          "values": [
-            {
-              "column": "gmail_message_id",
-              "condition": "equal",
-              "value": "={{ $json.gmail_message_id }}"
-            }
-          ]
-        },
+        "operation": "executeQuery",
+        "query": "UPDATE email_processing SET\n  state = '{{ $json.update_state }}',\n  operator_action = '{{ $json.action }}',\n  operator_telegram_id = {{ $json.user_id || 0 }},\n  operator_action_at = NOW(),\n  updated_at = NOW()\nWHERE gmail_message_id = '{{ $json.gmail_message_id }}'",
         "options": {}
       },
       "id": "node-update-db-state",
@@ -573,48 +536,8 @@
     },
     {
       "parameters": {
-        "operation": "insert",
-        "schema": {
-          "value": "public",
-          "mode": "list"
-        },
-        "table": {
-          "value": "audit_log",
-          "mode": "list"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "string": [
-              {
-                "name": "gmail_message_id",
-                "value": "={{ $json.gmail_message_id }}"
-              },
-              {
-                "name": "thread_id",
-                "value": "={{ $json.thread_id }}"
-              },
-              {
-                "name": "action",
-                "value": "={{ $json.action }}"
-              },
-              {
-                "name": "actor",
-                "value": "={{ $json.operator }}"
-              },
-              {
-                "name": "result",
-                "value": "={{ $json.action_result }}"
-              }
-            ],
-            "boolean": [
-              {
-                "name": "is_demo",
-                "value": "={{ $json.demo_mode }}"
-              }
-            ]
-          }
-        },
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_log (gmail_message_id, thread_id, action, actor, result, is_demo)\nVALUES (\n  '{{ $json.gmail_message_id }}',\n  '{{ $json.thread_id }}',\n  '{{ $json.action }}',\n  '{{ $json.operator }}',\n  '{{ $json.action_result }}',\n  {{ $json.demo_mode || false }}\n)",
         "options": {}
       },
       "id": "node-audit-log",
@@ -635,10 +558,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Execute Gmail Action').item.json.telegram_confirm_url }}",
+        "url": "={{ $('Execute Gmail Action').first().json.telegram_confirm_url }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": {{ $('Execute Gmail Action').item.json.chat_id }},\n  \"text\": \"{{ $('Execute Gmail Action').item.json.telegram_confirm_text }}\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Execute Gmail Action').first().json.chat_id, text: $('Execute Gmail Action').first().json.telegram_confirm_text, parse_mode: 'Markdown' }) }}",
         "options": {
           "timeout": 10000
         }
