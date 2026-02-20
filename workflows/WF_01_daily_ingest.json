@@ -371,20 +371,6 @@
     },
     {
       "parameters": {
-        "mode": "chooseBranch",
-        "output": "input1"
-      },
-      "id": "node-merge-risk-paths",
-      "name": "Merge Risk Paths",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [
-        4320,
-        220
-      ]
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": false,
@@ -571,20 +557,6 @@
       "position": [
         5760,
         140
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "chooseBranch",
-        "output": "input1"
-      },
-      "id": "node-merge-draft-paths",
-      "name": "Merge All Paths",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [
-        6000,
-        280
       ]
     },
     {
@@ -1105,7 +1077,7 @@
       "main": [
         [
           {
-            "node": "Merge Risk Paths",
+            "node": "IF Needs Draft",
             "type": "main",
             "index": 0
           }
@@ -1113,17 +1085,6 @@
       ]
     },
     "HIGH Risk — Escalade (no draft)": {
-      "main": [
-        [
-          {
-            "node": "Merge Risk Paths",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge Risk Paths": {
       "main": [
         [
           {
@@ -1145,9 +1106,9 @@
         ],
         [
           {
-            "node": "Merge All Paths",
+            "node": "Prepare for Persist",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
@@ -1215,17 +1176,6 @@
       ]
     },
     "Collect Draft ID": {
-      "main": [
-        [
-          {
-            "node": "Merge All Paths",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge All Paths": {
       "main": [
         [
           {
