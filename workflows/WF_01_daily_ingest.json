@@ -38,7 +38,7 @@
     },
     {
       "parameters": {
-        "mode": "passThrough",
+        "mode": "chooseBranch",
         "output": "input1"
       },
       "id": "node-merge-triggers",
@@ -435,7 +435,7 @@
     },
     {
       "parameters": {
-        "mode": "passThrough",
+        "mode": "chooseBranch",
         "output": "input1"
       },
       "id": "node-merge-risk-paths",
@@ -639,7 +639,7 @@
     },
     {
       "parameters": {
-        "mode": "passThrough",
+        "mode": "chooseBranch",
         "output": "input1"
       },
       "id": "node-merge-draft-paths",
