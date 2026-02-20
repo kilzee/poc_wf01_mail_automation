@@ -117,7 +117,7 @@
       "id": "node-split-batches",
       "name": "Split In Batches (1 by 1)",
       "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
+      "typeVersion": 2,
       "position": [
         1680,
         280
