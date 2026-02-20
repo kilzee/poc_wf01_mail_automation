@@ -98,38 +98,6 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "cond-has-messages",
-              "leftValue": "={{ $json.id }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "node-if-has-messages",
-      "name": "IF Has Messages",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1440,
-        380
-      ]
-    },
-    {
-      "parameters": {
         "jsCode": "// Pas d'emails à traiter\nconst config = $('Init Run Config').first().json;\nreturn [{ json: { message: 'Aucun email non lu — run terminé', run_id: config.run_id, demo_mode: config.demo_mode } }];"
       },
       "id": "node-no-messages",
@@ -1012,25 +980,7 @@
       "main": [
         [
           {
-            "node": "IF Has Messages",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Has Messages": {
-      "main": [
-        [
-          {
             "node": "Split In Batches (1 by 1)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "No Messages — Log",
             "type": "main",
             "index": 0
           }
