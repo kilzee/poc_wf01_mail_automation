@@ -161,25 +161,8 @@
     },
     {
       "parameters": {
-        "operation": "select",
-        "schema": {
-          "value": "public",
-          "mode": "list"
-        },
-        "table": {
-          "value": "email_processing",
-          "mode": "list"
-        },
-        "where": {
-          "values": [
-            {
-              "column": "gmail_message_id",
-              "condition": "equal",
-              "value": "={{ $json.gmail_message_id }}"
-            }
-          ]
-        },
-        "limit": 1,
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(gmail_message_id, '') as gmail_message_id, COALESCE(state, '') as state FROM email_processing WHERE gmail_message_id = '{{ $json.gmail_message_id }}' UNION ALL SELECT '', '' WHERE NOT EXISTS (SELECT 1 FROM email_processing WHERE gmail_message_id = '{{ $json.gmail_message_id }}') LIMIT 1",
         "options": {}
       },
       "id": "node-check-dup",
