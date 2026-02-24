@@ -17,23 +17,24 @@ Automatisation de gestion quotidienne d'une boîte Gmail, pilotée et validée v
 
 ```
 INBOX Gmail
-    ↓
+    ↓ (Cron toutes les heures, lun-ven 9h-18h)
 WF_01 Daily Ingest & Analyze
-    ├── Normalisation emails
-    ├── Score anti-phishing
-    ├── LLM Triage (priorité + catégorie)
-    ├── LLM Draft (brouillon réponse)
+    ├── Normalisation emails + déduplication (PostgreSQL)
+    ├── Score anti-phishing (0-100)
+    ├── LLM Triage → P1 / P2 / P3
+    ├── LLM Draft → brouillon réponse
     ├── Création Draft Gmail
     └── Telegram: Digest + Alertes P1
-            ↓
+            ↓ (boutons Telegram)
 WF_06 Telegram Webhook (actions opérateur)
-    ├── APPROVE_SEND → send draft
-    ├── SAVE_DRAFT_ONLY → garder brouillon
-    ├── APPLY_LABEL → labelliser
-    ├── ARCHIVE → archiver
-    ├── MARK_SPAM → marquer spam
-    ├── ESCALATE → escalader
-    └── IGNORE → ignorer
+    ├── Auth opérateur (TELEGRAM_AUTHORIZED_USER_ID)
+    ├── APPROVE_SEND   → envoie draft + label poc_sent_approved
+    ├── SAVE_DRAFT_ONLY → conserve draft + label poc_processed
+    ├── APPLY_LABEL    → label poc_processed
+    ├── ARCHIVE        → retire INBOX + label poc_processed
+    ├── MARK_SPAM      → marque SPAM
+    ├── ESCALATE       → label poc_escalated (reste en INBOX)
+    └── IGNORE         → label poc_ignored (reste en INBOX)
 ```
 
 ## Prérequis
@@ -75,6 +76,7 @@ open http://localhost:5678
 
 | Fichier | Description |
 |---------|-------------|
+| [docs/06_runbook.md](docs/06_runbook.md) | **Référence opérationnelle complète** (boutons, labels, priorités, cron, env) |
 | [docs/01_google_oauth_setup.md](docs/01_google_oauth_setup.md) | Configuration Google Cloud & OAuth2 |
 | [docs/02_n8n_setup.md](docs/02_n8n_setup.md) | Installation n8n & credentials |
 | [docs/03_telegram_bot_setup.md](docs/03_telegram_bot_setup.md) | Création bot Telegram & webhook |
