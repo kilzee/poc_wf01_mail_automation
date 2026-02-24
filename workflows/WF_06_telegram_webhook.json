@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// PARSE TELEGRAM UPDATE\n// Accepte: callback_query (boutons) et message (commandes /)\n// ============================================================\nconst body = $json.body || $json;\n\nconst update = {\n  update_id: body.update_id,\n  callback_query: body.callback_query || null,\n  message: body.message || null\n};\n\n// Déterminer le type d'update\nconst isCallback = !!update.callback_query;\nconst isCommand = !isCallback && !!update.message;\n\nlet userId, chatId, data, text, messageId;\n\nif (isCallback) {\n  userId = update.callback_query.from.id;\n  chatId = update.callback_query.message.chat.id;\n  data = update.callback_query.data; // ex: \"APPROVE_SEND|gmail_message_id\"\n  messageId = update.callback_query.message.message_id;\n  text = update.callback_query.message.text || '';\n} else if (isCommand) {\n  userId = update.message.from.id;\n  chatId = update.message.chat.id;\n  data = update.message.text || '';\n  messageId = update.message.message_id;\n  text = '';\n}\n\n// Parse callback_data\nlet action = null;\nlet gmailMsgId = null;\n\nif (isCallback && data) {\n  const parts = data.split('|');\n  action = parts[0]; // ex: APPROVE_SEND\n  gmailMsgId = parts[1] || null; // ex: gmail_message_id\n} else if (isCommand) {\n  // Commandes textuelles\n  if (data.startsWith('/status')) action = 'CMD_STATUS';\n  else if (data.startsWith('/digest')) action = 'CMD_DIGEST';\n  else if (data.startsWith('/help')) action = 'CMD_HELP';\n  else action = 'CMD_UNKNOWN';\n}\n\nreturn [{\n  json: {\n    update_id: update.update_id,\n    is_callback: isCallback,\n    is_command: isCommand,\n    user_id: userId,\n    chat_id: chatId,\n    message_id: messageId,\n    action: action,\n    gmail_message_id: gmailMsgId,\n    raw_data: data,\n    raw_body: body,\n    telegram_token: $env['TELEGRAM_BOT_TOKEN'] || '',\n    authorized_user_id: parseInt($env['TELEGRAM_AUTHORIZED_USER_ID'] || '0'),\n    demo_mode: ($env['DEMO_MODE'] || 'true') === 'true'\n  }\n}];"
+        "jsCode": "// ============================================================\n// PARSE TELEGRAM UPDATE\n// Accepte: callback_query (boutons) et message (commandes /)\n// ============================================================\nconst body = $json.body || $json;\n\nconst update = {\n  update_id: body.update_id,\n  callback_query: body.callback_query || null,\n  message: body.message || null\n};\n\nconst isCallback = !!update.callback_query;\nconst isCommand = !isCallback && !!update.message;\n\nlet userId, chatId, data, text, messageId;\n\nif (isCallback) {\n  userId = update.callback_query.from.id;\n  chatId = update.callback_query.message.chat.id;\n  data = update.callback_query.data;\n  messageId = update.callback_query.message.message_id;\n  text = update.callback_query.message.text || '';\n} else if (isCommand) {\n  userId = update.message.from.id;\n  chatId = update.message.chat.id;\n  data = update.message.text || '';\n  messageId = update.message.message_id;\n  text = '';\n}\n\nlet action = null;\nlet gmailMsgId = null;\n\nif (isCallback && data) {\n  const parts = data.split('|');\n  action = parts[0];\n  gmailMsgId = parts[1] || null;\n} else if (isCommand) {\n  if (data.startsWith('/status')) action = 'CMD_STATUS';\n  else if (data.startsWith('/digest')) action = 'CMD_DIGEST';\n  else if (data.startsWith('/help')) action = 'CMD_HELP';\n  else action = 'CMD_UNKNOWN';\n}\n\nreturn [{\n  json: {\n    update_id: update.update_id,\n    is_callback: isCallback,\n    is_command: isCommand,\n    user_id: userId,\n    chat_id: chatId,\n    message_id: messageId,\n    action: action,\n    gmail_message_id: gmailMsgId,\n    raw_data: data,\n    raw_body: body,\n    telegram_token: $env['TELEGRAM_BOT_TOKEN'] || '',\n    authorized_user_id: parseInt($env['TELEGRAM_AUTHORIZED_USER_ID'] || $env['TELEGRAM_CHAT_ID'] || '0'),\n    demo_mode: ($env['DEMO_MODE'] || 'true') === 'true'\n  }\n}];"
       },
       "id": "node-parse-update",
       "name": "Parse Telegram Update",
@@ -37,7 +37,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// SECURITY — Vérifier l'identité de l'opérateur\n// ============================================================\nconst data = $json;\nconst authorizedId = data.authorized_user_id;\nconst userId = data.user_id;\n\nconst isAuthorized = authorizedId > 0 && userId === authorizedId;\n\nif (!isAuthorized) {\n  // Logguer la tentative non autorisée\n  console.warn(`SECURITY: Unauthorized Telegram access attempt from user_id=${userId}, expected=${authorizedId}`);\n}\n\nreturn [{\n  json: {\n    ...data,\n    is_authorized: isAuthorized\n  }\n}];"
+        "jsCode": "// ============================================================\n// SECURITY — Vérifier l'identité de l'opérateur\n// ============================================================\nconst data = $json;\nconst authorizedId = data.authorized_user_id;\nconst userId = data.user_id;\n\nconst openMode = authorizedId === 0;\nconst isAuthorized = openMode || (userId === authorizedId);\n\nif (!isAuthorized) {\n  console.warn(`SECURITY: Unauthorized attempt from user_id=${userId}, expected=${authorizedId}`);\n}\nif (openMode) {\n  console.warn(`AUTH: open_mode — user_id=${userId}`);\n}\n\nreturn [{\n  json: {\n    ...data,\n    is_authorized: isAuthorized,\n    auth_open_mode: openMode\n  }\n}];"
       },
       "id": "node-auth-check",
       "name": "Auth Check",
@@ -82,7 +82,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Répondre 200 OK à Telegram pour les requêtes non autorisées\n// (ne pas révéler l'erreur à l'expéditeur)\nreturn [{ json: { statusCode: 200, body: 'OK' } }];"
+        "jsCode": "return [{ json: { statusCode: 200, body: 'OK' } }];"
       },
       "id": "node-unauthorized",
       "name": "Unauthorized — Silent Reject",
@@ -112,202 +112,31 @@
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
             {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r1",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "APPROVE_SEND",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "APPROVE_SEND"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r2",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "EDIT_DRAFT",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "EDIT_DRAFT"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r3",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "SAVE_DRAFT_ONLY",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "SAVE_DRAFT_ONLY"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r4",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "APPLY_LABEL",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "APPLY_LABEL"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r5",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "ARCHIVE",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "ARCHIVE"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r6",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "MARK_SPAM",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "MARK_SPAM"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r7",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "ESCALATE",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "ESCALATE"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": false,
-                  "leftValue": "",
-                  "typeValidation": "loose"
-                },
-                "conditions": [
-                  {
-                    "id": "r8",
-                    "leftValue": "={{ $json.action }}",
-                    "rightValue": "IGNORE",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "IGNORE"
+              "id": "cond-is-callback",
+              "leftValue": "={{ $json.is_callback }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
             }
-          ]
+          ],
+          "combinator": "and"
         },
-        "options": {
-          "fallbackOutput": "extra"
-        }
+        "options": {}
       },
       "id": "node-action-router",
       "name": "Action Router",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
       "position": [
         1200,
         280
@@ -315,25 +144,8 @@
     },
     {
       "parameters": {
-        "operation": "select",
-        "schema": {
-          "value": "public",
-          "mode": "list"
-        },
-        "table": {
-          "value": "email_processing",
-          "mode": "list"
-        },
-        "where": {
-          "values": [
-            {
-              "column": "gmail_message_id",
-              "condition": "equal",
-              "value": "={{ $json.gmail_message_id }}"
-            }
-          ]
-        },
-        "limit": 1,
+        "operation": "executeQuery",
+        "query": "SELECT ep.*, '{{ $json.action }}' AS _action, '{{ $json.telegram_token }}' AS _telegram_token, {{ $json.chat_id || 0 }} AS _chat_id, {{ $json.user_id || 0 }} AS _user_id, '{{ $json.demo_mode }}' AS _demo_mode FROM email_processing ep WHERE ep.gmail_message_id = '{{ $json.gmail_message_id }}' LIMIT 1",
         "options": {}
       },
       "id": "node-fetch-email-record",
@@ -353,7 +165,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// EXECUTE ACTION — Dispatcher vers WF_07 ou traitement local\n// ============================================================\nconst actionData = $('Action Router').first().json;\nconst emailRecord = $json;\nconst action = actionData.action;\nconst demoMode = actionData.demo_mode;\nconst telegramToken = actionData.telegram_token;\nconst chatId = actionData.chat_id;\nconst userId = actionData.user_id;\nconst gmailMsgId = actionData.gmail_message_id;\n\n// Vérifications de sécurité\nconst checks = {\n  APPROVE_SEND: () => {\n    if (emailRecord.block_send) return { blocked: true, reason: 'block_send=true (risque élevé)' };\n    if (!emailRecord.draft_id) return { blocked: true, reason: 'Aucun draft disponible' };\n    if (emailRecord.risk_level === 'HIGH') return { blocked: true, reason: 'Email HIGH risk — envoi impossible' };\n    return { blocked: false };\n  },\n  DEFAULT: () => ({ blocked: false })\n};\n\nconst check = (checks[action] || checks.DEFAULT)();\n\nif (check.blocked) {\n  return [{\n    json: {\n      action: action,\n      gmail_message_id: gmailMsgId,\n      blocked: true,\n      block_reason: check.reason,\n      demo_mode: demoMode,\n      telegram_token: telegramToken,\n      chat_id: chatId,\n      user_id: userId,\n      email_record: emailRecord\n    }\n  }];\n}\n\n// Préparer les données pour WF_07\nreturn [{\n  json: {\n    action: action,\n    gmail_message_id: gmailMsgId,\n    thread_id: emailRecord.thread_id,\n    draft_id: emailRecord.draft_id,\n    draft_subject: emailRecord.draft_subject,\n    from_email: emailRecord.from_email,\n    subject: emailRecord.subject,\n    risk_level: emailRecord.risk_level,\n    block_send: emailRecord.block_send || false,\n    blocked: false,\n    demo_mode: demoMode,\n    telegram_token: telegramToken,\n    chat_id: chatId,\n    user_id: userId,\n    operator: `operator:${userId}`,\n    email_record: emailRecord\n  }\n}];"
+        "jsCode": "// ============================================================\n// EXECUTE ACTION — Safety check + dispatch\n// Les champs _action, _telegram_token, _chat_id, _user_id, _demo_mode\n// sont injectés par le nœud Postgres via la requête SQL.\n// ============================================================\nconst action = $json._action;\nconst demoMode = $json._demo_mode === true || $json._demo_mode === 'true';\nconst telegramToken = $json._telegram_token;\nconst chatId = parseInt($json._chat_id) || 0;\nconst userId = parseInt($json._user_id) || 0;\nconst gmailMsgId = $json.gmail_message_id;\nconst emailRecord = $json;\n\nconst blockSend = $json.block_send === true || $json.block_send === 'true';\nconst riskLevel = $json.risk_level;\nconst draftId = $json.draft_id;\n\nconst checks = {\n  APPROVE_SEND: () => {\n    if (blockSend) return { blocked: true, reason: 'block_send=true (risque élevé)' };\n    if (!draftId) return { blocked: true, reason: 'Aucun draft disponible' };\n    if (riskLevel === 'HIGH') return { blocked: true, reason: 'Email HIGH risk — envoi impossible' };\n    return { blocked: false };\n  },\n  DEFAULT: () => ({ blocked: false })\n};\n\nconst check = (checks[action] || checks.DEFAULT)();\n\nif (check.blocked) {\n  return [{\n    json: {\n      action, gmail_message_id: gmailMsgId,\n      blocked: true, block_reason: check.reason,\n      demo_mode: demoMode, telegram_token: telegramToken,\n      chat_id: chatId, user_id: userId, email_record: emailRecord\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    action, gmail_message_id: gmailMsgId,\n    thread_id: emailRecord.thread_id,\n    draft_id: draftId, draft_subject: emailRecord.draft_subject,\n    from_email: emailRecord.from_email, subject: emailRecord.subject,\n    risk_level: riskLevel, block_send: blockSend, blocked: false,\n    demo_mode: demoMode, telegram_token: telegramToken,\n    chat_id: chatId, user_id: userId,\n    operator: `operator:${userId}`,\n    email_record: emailRecord\n  }\n}];"
       },
       "id": "node-action-executor",
       "name": "Action Executor & Safety Check",
@@ -398,7 +210,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// GMAIL ACTIONS (DEMO mode: simulation)\n// ============================================================\nconst data = $json;\nconst demoMode = data.demo_mode;\nconst action = data.action;\nconst gmailMsgId = data.gmail_message_id;\nconst draftId = data.draft_id;\nconst telegramToken = data.telegram_token;\nconst chatId = data.chat_id;\n\nlet resultMessage = '';\nlet actionResult = 'success';\nlet gmailAction = null;\nlet updateState = action;\n\nif (demoMode) {\n  // Mode DEMO: simulation seulement\n  const actionMessages = {\n    APPROVE_SEND:    `✅ [DEMO] Envoi approuvé simulé — Draft: ${draftId}`,\n    SAVE_DRAFT_ONLY: `💾 [DEMO] Brouillon conservé — pas d'envoi`,\n    APPLY_LABEL:     `🏷️ [DEMO] Label appliqué simulé`,\n    ARCHIVE:         `📦 [DEMO] Archivage simulé`,\n    MARK_SPAM:       `🚫 [DEMO] Marquage spam simulé`,\n    ESCALATE:        `🔺 [DEMO] Escalade simulée — email: ${data.escalation_email || 'à configurer'}`,\n    IGNORE:          `⏭️ [DEMO] Email ignoré`\n  };\n  resultMessage = actionMessages[action] || `[DEMO] Action ${action} simulée`;\n  actionResult = 'demo';\n} else {\n  // Mode PRODUCTION: préparer les paramètres Gmail\n  const actionMap = {\n    APPROVE_SEND:    { type: 'send_draft',   labelAdd: ['Label_poc_sent_approved'], labelRemove: ['Label_poc_draft_ready', 'INBOX'] },\n    SAVE_DRAFT_ONLY: { type: 'archive',      labelAdd: ['Label_poc_processed'],     labelRemove: ['INBOX'] },\n    APPLY_LABEL:     { type: 'label',        labelAdd: ['Label_poc_processed'],     labelRemove: [] },\n    ARCHIVE:         { type: 'archive',      labelAdd: ['Label_poc_processed'],     labelRemove: ['INBOX'] },\n    MARK_SPAM:       { type: 'spam',         labelAdd: ['SPAM'],                    labelRemove: ['INBOX'] },\n    ESCALATE:        { type: 'label',        labelAdd: ['Label_poc_escalated'],     labelRemove: [] },\n    IGNORE:          { type: 'label',        labelAdd: ['Label_poc_ignored'],       labelRemove: [] }\n  };\n  gmailAction = actionMap[action] || { type: 'noop', labelAdd: [], labelRemove: [] };\n\n  const actionMessages = {\n    APPROVE_SEND:    `✅ Réponse envoyée`,\n    SAVE_DRAFT_ONLY: `💾 Brouillon conservé`,\n    APPLY_LABEL:     `🏷️ Label appliqué`,\n    ARCHIVE:         `📦 Email archivé`,\n    MARK_SPAM:       `🚫 Marqué comme spam`,\n    ESCALATE:        `🔺 Escaladé`,\n    IGNORE:          `⏭️ Ignoré`\n  };\n  resultMessage = actionMessages[action] || `Action ${action} exécutée`;\n}\n\n// Message de confirmation Telegram\nconst confirmText = `${resultMessage}\\n📧 Email: ${data.subject || gmailMsgId}`;\n\nreturn [{\n  json: {\n    ...data,\n    action_result: actionResult,\n    result_message: resultMessage,\n    gmail_action: gmailAction,\n    update_state: updateState,\n    telegram_confirm_text: confirmText,\n    telegram_confirm_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`\n  }\n}];"
+        "jsCode": "// ============================================================\n// GMAIL ACTIONS (DEMO mode: simulation)\n// ============================================================\nconst data = $json;\nconst demoMode = data.demo_mode;\nconst action = data.action;\nconst gmailMsgId = data.gmail_message_id;\nconst draftId = data.draft_id;\nconst telegramToken = data.telegram_token;\nconst chatId = data.chat_id;\n\nlet resultMessage = '';\nlet actionResult = 'success';\nlet gmailAction = null;\nlet updateState = action;\n\nif (demoMode) {\n  const actionMessages = {\n    APPROVE_SEND:    `✅ [DEMO] Envoi approuvé simulé — Draft: ${draftId}`,\n    SAVE_DRAFT_ONLY: `💾 [DEMO] Brouillon conservé — pas d'envoi`,\n    APPLY_LABEL:     `🏷️ [DEMO] Label appliqué simulé`,\n    ARCHIVE:         `📦 [DEMO] Archivage simulé`,\n    MARK_SPAM:       `🚫 [DEMO] Marquage spam simulé`,\n    ESCALATE:        `🔺 [DEMO] Escalade simulée`,\n    IGNORE:          `⏭️ [DEMO] Email ignoré`\n  };\n  resultMessage = actionMessages[action] || `[DEMO] Action ${action} simulée`;\n  actionResult = 'demo';\n} else {\n  const actionMap = {\n    APPROVE_SEND:    { type: 'send_draft',   labelAdd: ['Label_5892932524421666823'], labelRemove: ['INBOX'] },\n    SAVE_DRAFT_ONLY: { type: 'archive',      labelAdd: ['Label_2157285236271374757'], labelRemove: ['INBOX'] },\n    APPLY_LABEL:     { type: 'label',        labelAdd: ['Label_2157285236271374757'], labelRemove: [] },\n    ARCHIVE:         { type: 'archive',      labelAdd: ['Label_2157285236271374757'], labelRemove: ['INBOX'] },\n    MARK_SPAM:       { type: 'spam',         labelAdd: ['SPAM'],                     labelRemove: ['INBOX'] },\n    ESCALATE:        { type: 'label',        labelAdd: ['Label_7736907950711324232'], labelRemove: [] },\n    IGNORE:          { type: 'label',        labelAdd: ['Label_4210411953109202836'], labelRemove: [] }\n  };\n  gmailAction = actionMap[action] || { type: 'noop', labelAdd: [], labelRemove: [] };\n  const actionMessages = {\n    APPROVE_SEND:    `✅ Réponse envoyée`,\n    SAVE_DRAFT_ONLY: `💾 Brouillon conservé`,\n    APPLY_LABEL:     `🏷️ Label appliqué`,\n    ARCHIVE:         `📦 Email archivé`,\n    MARK_SPAM:       `🚫 Marqué comme spam`,\n    ESCALATE:        `🔺 Escaladé`,\n    IGNORE:          `⏭️ Ignoré`\n  };\n  resultMessage = actionMessages[action] || `Action ${action} exécutée`;\n}\n\nconst confirmText = `${resultMessage}\\n📧 Email: ${data.subject || gmailMsgId}`;\n\nreturn [{\n  json: {\n    ...data,\n    action_result: actionResult,\n    result_message: resultMessage,\n    gmail_action: gmailAction,\n    update_state: updateState,\n    telegram_confirm_text: confirmText,\n    telegram_confirm_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`\n  }\n}];"
       },
       "id": "node-execute-gmail-action",
       "name": "Execute Gmail Action",
@@ -457,11 +269,15 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts/={{ $json.draft_id }}/send",
-        "authentication": "oAuth2",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts/send",
+        "authentication": "predefinedCredentialType",
         "options": {
           "timeout": 15000
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({id: $json.draft_id}) }}",
+        "nodeCredentialType": "gmailOAuth2"
       },
       "id": "node-gmail-send-draft",
       "name": "Gmail API — Send Draft",
@@ -472,7 +288,7 @@
         120
       ],
       "credentials": {
-        "oAuth2Api": {
+        "gmailOAuth2": {
           "name": "Gmail POC"
         }
       },
@@ -480,18 +296,24 @@
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "addLabels",
-        "messageId": "={{ $json.gmail_message_id }}",
-        "labelIds": "={{ $json.gmail_action?.labelAdd || [] }}"
+        "method": "POST",
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.gmail_message_id }}/modify",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ addLabelIds: $json.gmail_action?.labelAdd || [], removeLabelIds: $json.gmail_action?.labelRemove || [] }) }}",
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "node-gmail-apply-labels",
       "name": "Gmail — Apply Labels",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         2640,
-        260
+        280
       ],
       "credentials": {
         "gmailOAuth2": {
@@ -502,13 +324,12 @@
     },
     {
       "parameters": {
-        "mode": "passThrough",
-        "output": "input1"
+        "jsCode": "// Remplace Merge Gmail Results (Merge v3 non supporté dans ce build n8n)\n// Récupère les données complètes depuis Execute Gmail Action\n// (action, telegram_token, chat_id, update_state, telegram_confirm_text, etc.)\nconst data = $('Execute Gmail Action').first().json;\nreturn [{ json: data }];"
       },
-      "id": "node-merge-gmail-results",
-      "name": "Merge Gmail Results",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "id": "node-pass-gmail-result",
+      "name": "Pass Gmail Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         2880,
         200
@@ -562,7 +383,7 @@
         "url": "={{ $('Execute Gmail Action').first().json.telegram_confirm_url }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: $('Execute Gmail Action').first().json.chat_id, text: $('Execute Gmail Action').first().json.telegram_confirm_text, parse_mode: 'Markdown' }) }}",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Execute Gmail Action').first().json.chat_id, text: String($('Execute Gmail Action').first().json.telegram_confirm_text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'), parse_mode: 'HTML' }) }}",
         "options": {
           "timeout": 10000
         }
@@ -579,7 +400,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Action bloquée — notifier l'opérateur\nconst data = $json;\nconst reason = data.block_reason || 'Action non autorisée';\nconst telegramToken = data.telegram_token;\nconst chatId = data.chat_id;\n\nconst text = `❌ *Action bloquée: ${data.action}*\\nRaison: ${reason}\\nEmail: ${data.gmail_message_id}`;\n\nreturn [{\n  json: {\n    telegram_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`,\n    payload: {\n      chat_id: chatId,\n      text: text,\n      parse_mode: 'Markdown'\n    }\n  }\n}];"
+        "jsCode": "const data = $json;\nconst reason = data.block_reason || 'Action non autorisée';\nconst telegramToken = data.telegram_token;\nconst chatId = data.chat_id;\n\nconst text = `❌ *Action bloquée: ${data.action}*\\nRaison: ${reason}\\nEmail: ${data.gmail_message_id}`;\n\nreturn [{\n  json: {\n    telegram_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`,\n    payload: { chat_id: chatId, text: text, parse_mode: 'Markdown' }\n  }\n}];"
       },
       "id": "node-blocked-response",
       "name": "Blocked Action Response",
@@ -587,7 +408,7 @@
       "typeVersion": 2,
       "position": [
         2160,
-        420
+        400
       ]
     },
     {
@@ -607,13 +428,13 @@
       "typeVersion": 4.2,
       "position": [
         2400,
-        420
+        400
       ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Commandes textuelles (/status, /help, /digest)\nconst data = $json;\nconst action = data.action;\nconst telegramToken = data.telegram_token;\nconst chatId = data.chat_id;\n\nlet text = '';\nif (action === 'CMD_STATUS') {\n  text = `✅ *Système opérationnel*\\nMode: ${data.demo_mode ? '🔵 DEMO' : '🟢 Production'}\\nBot actif`;\n} else if (action === 'CMD_HELP') {\n  text = `*Commandes disponibles:*\\n/status — Statut du système\\n/digest — Résumé du jour\\n/help — Cette aide\\n\\n*Actions sur emails:*\\nUtiliser les boutons dans les messages d'alerte.`;\n} else if (action === 'CMD_DIGEST') {\n  text = `📊 Demande de digest — lance WF_01 manuellement via n8n pour un digest immédiat.`;\n} else {\n  text = `Commande non reconnue: ${data.raw_data}`;\n}\n\nreturn [{\n  json: {\n    telegram_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`,\n    payload: { chat_id: chatId, text: text, parse_mode: 'Markdown' }\n  }\n}];"
+        "jsCode": "const data = $json;\nconst action = data.action;\nconst telegramToken = data.telegram_token;\nconst chatId = data.chat_id;\n\nlet text = '';\nif (action === 'CMD_STATUS') {\n  text = `✅ *Système opérationnel*\\nMode: ${data.demo_mode ? '🔵 DEMO' : '🟢 Production'}\\nBot actif`;\n} else if (action === 'CMD_HELP') {\n  text = `*Commandes disponibles:*\\n/status — Statut du système\\n/digest — Résumé du jour\\n/help — Cette aide\\n\\n*Actions sur emails:*\\nUtiliser les boutons dans les messages d'alerte.`;\n} else if (action === 'CMD_DIGEST') {\n  text = `📊 Demande de digest — lance WF_01 manuellement via n8n pour un digest immédiat.`;\n} else {\n  text = `Commande non reconnue: ${data.raw_data}`;\n}\n\nreturn [{\n  json: {\n    telegram_url: `https://api.telegram.org/bot${telegramToken}/sendMessage`,\n    payload: { chat_id: chatId, text: text, parse_mode: 'Markdown' }\n  }\n}];"
       },
       "id": "node-handle-commands",
       "name": "Handle Text Commands",
@@ -664,9 +485,9 @@
     },
     {
       "parameters": {
-        "content": "## WF_06 — Telegram Webhook Handler\n\n**Flux:**\n1. Recevoir update Telegram (POST /webhook/telegram-actions)\n2. Parser callback_query ou message\n3. Vérifier l'identité (user_id == TELEGRAM_AUTHORIZED_USER_ID)\n4. Router par action:\n   - APPROVE_SEND → vérif block_send → envoyer draft\n   - SAVE_DRAFT_ONLY → archiver sans envoyer\n   - APPLY_LABEL → appliquer label\n   - ARCHIVE → archiver\n   - MARK_SPAM → marquer spam\n   - ESCALATE → label + notif\n   - IGNORE → log uniquement\n   - /help, /status, /digest → réponse textuelle\n5. Mettre à jour l'état en DB\n6. Logger dans audit_log\n7. Confirmer l'action à l'opérateur\n8. Répondre 200 à Telegram\n\n**Sécurité:** Seul TELEGRAM_AUTHORIZED_USER_ID peut déclencher des actions.",
+        "content": "## WF_06 — Telegram Webhook Handler\n\n**Flux:**\n1. Recevoir update Telegram\n2. Parser callback_query ou message\n3. Vérifier l'identité\n4. Router: callback → Postgres+Action / text → Handle Commands\n5. Postgres embarque les champs Telegram dans le SELECT (SQL embed)\n6. Action Executor lit tout depuis $json (_action, _telegram_token, etc.)\n7. Execute Gmail Action (demo ou production)\n8. Pass Gmail Result (Code node — Merge v3 cassé dans ce build)\n9. Postgres Update State + Audit Log\n10. Send Telegram Confirmation\n\n**Sécurité:** TELEGRAM_AUTHORIZED_USER_ID requis.\n**Note build:** Merge v3 non fonctionnel → remplacé par Code nodes.",
         "height": 320,
-        "width": 340,
+        "width": 380,
         "color": 5
       },
       "id": "node-sticky-wf06",
@@ -717,7 +538,7 @@
       "main": [
         [
           {
-            "node": "Action Router",
+            "node": "Respond 200 OK",
             "type": "main",
             "index": 0
           }
@@ -744,55 +565,6 @@
     },
     "Action Router": {
       "main": [
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Postgres — Fetch Email Record",
-            "type": "main",
-            "index": 0
-          }
-        ],
         [
           {
             "node": "Postgres — Fetch Email Record",
@@ -882,7 +654,7 @@
       "main": [
         [
           {
-            "node": "Merge Gmail Results",
+            "node": "Pass Gmail Result",
             "type": "main",
             "index": 0
           }
@@ -893,14 +665,14 @@
       "main": [
         [
           {
-            "node": "Merge Gmail Results",
+            "node": "Pass Gmail Result",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
     },
-    "Merge Gmail Results": {
+    "Pass Gmail Result": {
       "main": [
         [
           {
@@ -935,13 +707,7 @@
     },
     "Send Telegram Confirmation": {
       "main": [
-        [
-          {
-            "node": "Respond 200 OK",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Blocked Action Response": {
@@ -982,6 +748,17 @@
         [
           {
             "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 OK": {
+      "main": [
+        [
+          {
+            "node": "Action Router",
             "type": "main",
             "index": 0
           }
